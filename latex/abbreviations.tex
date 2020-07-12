@@ -1,0 +1,26 @@
+% no section command to prevent "A" before "Appendix" in toc.
+
+\addcontentsline{toc}{section}{Abbreviations} 
+
+\section*{Abbreviations} % no number before Appendix in toc
+\thispagestyle{plain} % surpress header on first page
+
+\phantom{This text will be invisible} 
+\hspace{20cm}
+
+
+
+% Please add the following required packages to your document preamble:
+% \usepackage{booktabs}
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.2}%
+	\begin{tabular}{@{}ll@{}}
+		\toprule
+	Term\phantom{space}	& Meaning \\ \midrule
+		$\bold{VI}$	& Variational Inequality \\
+		$\bold{NFXP}$	& Nested Fixed Point Algorithm \\
+		$\bold{MPEC}$	& Mathematical Programming with Equilibrium Constraints \\
+ \bottomrule
+	\end{tabular}
+\end{table}

@@ -1,0 +1,71 @@
+\section{Mathematical Programming with Equilibrium Constraints}
+\thispagestyle{plain} % surpress header on first page
+
+Mathematical Programming with Equilibrium Constraints can be traced back notation and concept wise to Game Theory. Specifically in the theory on Stackelberg games MPEC found its first development. It was due to \cite{Luo.Pang.Ralph.1996}, though, that MPEC was set onto a mathematically rigorous foundation. They argue that before there only was a blurred formulation available and its possibilities of application were not sufficiently explored. 
+
+Before we go into the details of mathematical formulation, applications and use in Economics of MPEC, let us break the lengthy term down into its key components. The beginning "Mathematical Program" solely captures that we look at a mathematical optimization problem. The particularity of this problem comes in with the "Equilibrium Constraints". Mathematically this means that this optimization problem is subject to variational inequalities (VI) as constraints. \cite{Nagurney.1993} explains that VIs consist of but are not limited to nonlinear equations, optimization as well as fixed point problems. More broadly spoken they are able to harnesses our intuitive notion of economic equilibrium for which typically a functional or a system of equations must be solved for all possible values of a given input. This is tightly linked to what is searched for when solving a Stackelberg game. Essentially, an economic equilibrium has to be found. As a reminder in a Stackelberg game, there is one leader that moves first followed by the moves of some followers. Solving this problem involves the leader to solve an optimization problem that in turn is subject to an optimization procedure of the followers given every possible optimal value the leader might find. The variational inequality here is the problem of the followers which involves solving a decision problem for every possible move of the leader and which is cast into the optimization problem of the leader as a constraint. It can be seen from the fact that the leader moves first and followers move after, as noted by \cite{Luo.Pang.Ralph.1996}, that the MPEC formulation is a hierarchical mathematical concept which captures multi-level optimization and hence can prove useful for the modeling of decision-making processes. They further explain that this feature can further be beneficial in other fields than just Economics. They showcase that a classification problem in machine learning can be formulated as an MPEC and they further describe some problems in robotics, chemical engineering and transportation networks in the MPEC notation. 
+
+While this discussion shows that MPEC problems appear in theoretical Economics, \cite{Su.Judd.2012} enter with the novel idea to formulate an estimation procedure in structural econometrics as a MPEC. In the following I present their idea using the notation they originally suggested. 
+
+\paragraph{}
+In order to estimate the structural parameters of an economic model using data, researchers commonly rely on the Generalized Method of Moments or maximum likelihood estimation. If the researchers opt for the most complex way of estimation (as opposed to using methods lowering the computational burden such as in \cite{Hotz.Miller.1993}) which involves solving the economic model at each guess of the structural parameters, they frequently employ the nested fixed point algorithm (NFXP) suggested by \cite{Rust.1987}. In the case of maximum likelihood estimation, the approach works like the following: An unconstrained optimization algorithm guesses the structural parameters and for each of those guesses the underlying economic model is solved. The resulting outcome of the economic model allows to evaluate the maximum likelihood which then gives new information to the optimization algorithm to form a new guess of the structural parameters. This is repeated until some stopping criteria is met. To make it more explicit, let us introduce some mathematical notation. Let us assume that an economic model is described by some structural parameter vector $\theta$ and a state vector $x$ as well as some endogenous vector $\sigma$. Assume we further observe some data consisting of $X = \{x_i, d_i\}^M_{i=1}$. $x_i$ is the observed state and $d_i$ is the observed equilibrium outcome of the underlying economic decision model. $M$ is the number of data points.
+
+Let us further assume that generally $\sigma$ depends on the parameters $\theta$ through a set of equilibrium conditions (or in the previous notation of variational inequalities). This includes e.g. Bellman equations. The consistency of $\sigma$ with $\theta$ is expressed by the following condition: 
+
+\begin{equation*}
+h(\theta, \sigma) = 0.
+\end{equation*}
+
+For a given $\theta$, let $\Sigma(\theta)$ denote the set of $\sigma(\theta)$ for which the equilibrium conditions hold, i.e. for which $h(\theta,\sigma)=0$. 
+
+\begin{equation*}
+\Sigma(\theta) := \{\sigma:h(\theta, \sigma)=0\}.
+\end{equation*}
+
+Let $\hat{\sigma}(\theta)$ denote an element of the above set. In the case of an infinite horizon dynamic discrete-choice model, this represents the expected value function evaluated at a specific parameter vector $\theta$. In the case that a unique fixed point for the expected value function exists, $\hat{\sigma}(\theta)$ would be a single value but this does not have to hold in general. If the equilibrium condition involves solving a game for instance, one could easily imagine to find multiple equilibria which causes $\Sigma(\theta)$ to have multiple elements for a given $\theta$. 
+
+For the case of multiple $\hat{\sigma}(\theta)$ the solution to the maximization of the log likelihood function $L(.)$ given the data $X$ becomes:
+
+\begin{equation}
+\hat\theta = \argmax_{\theta} \{ \max_{\hat\sigma(\theta)\in\Sigma(\theta)} L(\theta,\hat\sigma(\theta); X)\}. \label{eq1}
+\end{equation}
+
+This shows that the above problem boils down to finding the parameter vector $\theta$ that gives out possibly several $\hat{\sigma}(\theta)$ and which yields in combination with one of them the highest possible log likelihood of all combinations of $\theta$ and $\hat{\sigma}(\theta)$.
+
+As already shortly described, the NFXP attempts to solve this problem in a nested loop. First, a guess for $\hat{\theta}$ is fixed for which the corresponding $\hat{\sigma}(\hat\theta)$ are found. For those possibly multiple combinations the one that yields the highest log likelihood is chosen and this procedure is repeated until the $\hat{\theta}$ is found that solves equation (\ref{eq1}). The NFXP therefore solves this problem by running an unconstrained optimization of the log likelihood function that involves solving the economic model at each parameter guess. For the simplified version of $\hat{\sigma}(\hat\theta)$ being single-valued this idea is captured in the following pseudocode:
+
+\vspace{2ex}
+\begin{algorithm}[H]
+	\SetAlgoLined
+	\KwIn{$\hat\theta_t$, $t=0$, $X$}\;
+	\While{$f(|| \hat\theta_{t+1} - \hat\theta_{t} ||) \geq$ stopping tolerance}{
+		Calculate $\hat{\sigma}(\hat\theta_t)$ and evaluate $L(\hat\theta_t,\hat\sigma(\hat\theta_t); X)\}$\;
+		Based on that fix a new guess $\hat\theta_{t+1}$\;
+	}
+	\caption{Nested Fixed Point Algorithm}
+\end{algorithm}
+\vspace{2ex}
+ 
+The above formulation clearly conveys two points already. The problem posed in equation (\ref{eq1}) is essentially a hierarchical one. Additionally, we work with equilibrium conditions. This gives an indication that an MPEC formulation of the above problem might exist. \cite{Su.Judd.2012} formally prove exactly this. The difference to the NFXP way of writing the problem, one know ensures differently that a guess of $\theta$ is consistent with the equilibrium condition $h(\theta, \sigma)=0$. In the MPEC formulation $\sigma$ is modeled explicitly as another parameter vector that can be chosen freely instead of being derived from $\theta$. This gives rise to a new log likelihood function $L(\theta, \sigma; X)$ for which they coin the term augmented likelihood function. Still they have to make sure, though, that the equilibrium condition holds meaning that the parameter guess for $\theta$ is consistent with the equilibrium $\sigma$. This is done by imposing it as a constraint to the augmented log likelihood function. The optimization problem now becomes a constrained optimization looking like the following:
+
+\begin{equation}
+	\begin{aligned}
+		& \max_{(\theta, \sigma)} L(\theta, \sigma; X) \\
+		& \text{subject to } h(\theta, \sigma) = 0.
+	\end{aligned}
+	\label{eq2}
+\end{equation}
+
+\cite{Su.Judd.2012} provide a proof that the two formulations in the equations (\ref{eq1}) and (\ref{eq2}) are actually equivalent in the sense that they yield the same solution for $\hat\theta$. The general setup of the algorithm used for MPEC simplifies to the following:
+
+\vspace{2ex}
+\begin{algorithm}[H]
+	\SetAlgoLined
+	\KwIn{$\hat\theta_t$, $\hat{\sigma}_t$, $t=0$, $X$}\;
+	\While{$f(|| (\hat\theta_{t+1}, \hat{\sigma}_{t+1}) - (\hat\theta_{t}, \hat{\sigma}_{t}) ||) \geq$ stopping tolerance}{
+		Evaluate $L(\hat\theta_t, \hat\sigma_t; X)$\;
+		Based on that fix a new guess $(\hat\theta_{t+1}, \hat{\sigma}_{t+1})$\;
+	}
+	\caption{Mathematical Programming with Equilibrium Constraints}
+\end{algorithm}
+\vspace{2ex}
