@@ -37,10 +37,10 @@ As already shortly described, the NFXP attempts to solve this problem in a neste
 \vspace{2ex}
 \begin{algorithm}[H]
 	\SetAlgoLined
-	\KwIn{$\hat\theta_t$, $t=0$, $X$\;}
-	\While{$f(|| \hat\theta_{t+1} - \hat\theta_{t} ||) \geq$ stopping tolerance}{
-		Calculate $\hat{\sigma}(\hat\theta_t)$ and evaluate $L(\hat\theta_t,\hat\sigma(\hat\theta_t); X)\}$\;
-		Based on that fix a new guess $\hat\theta_{t+1}$\;
+	\KwIn{$\hat\theta_n$, $n=0$, $X$\;}
+	\While{$f(|| \hat\theta_{n+1} - \hat\theta_{n} ||) \geq$ stopping tolerance}{
+		Calculate $\hat{\sigma}(\hat\theta_n)$ and evaluate $L(\hat\theta_n,\hat\sigma(\hat\theta_n); X)\}$\;
+		Based on that fix a new guess $\hat\theta_{n+1}$\;
 	}
 	\caption{Nested Fixed Point Algorithm}
 \end{algorithm}
@@ -61,10 +61,10 @@ The above formulation clearly conveys two points already. The problem posed in e
 \vspace{2ex}
 \begin{algorithm}[H]
 	\SetAlgoLined
-	\KwIn{$\hat\theta_t$, $\hat{\sigma}_t$, $t=0$, $X$\;}
-	\While{$f(|| (\hat\theta_{t+1}, \hat{\sigma}_{t+1}) - (\hat\theta_{t}, \hat{\sigma}_{t}) ||) \geq$ stopping tolerance}{
-		Evaluate $L(\hat\theta_t, \hat\sigma_t; X)$\;
-		Based on that fix a new guess $(\hat\theta_{t+1}, \hat{\sigma}_{t+1})$\;
+	\KwIn{$\hat\theta_n$, $\hat{\sigma}_n$, $n=0$, $X$\;}
+	\While{$f(|| (\hat\theta_{n+1}, \hat{\sigma}_{n+1}) - (\hat\theta_{n}, \hat{\sigma}_{n}) ||) \geq$ stopping tolerance}{
+		Evaluate $L(\hat\theta_n, \hat\sigma_n; X)$\;
+		Based on that fix a new guess $(\hat\theta_{n+1}, \hat{\sigma}_{n+1})$\;
 	}
 	\caption{Mathematical Programming with Equilibrium Constraints}
 \end{algorithm}
