@@ -1,29 +1,32 @@
 import numpy as np
 import pandas as pd
 import scipy.io
-
 from ruspy.estimation.estimation import estimate
 
 
 def get_iskhakov_results(
-        discount_factor,
-        approach,
-        starting_cost_params,
-        starting_expected_value_fun,
-        number_runs,
-        number_buses,
-        number_periods,
-        number_states,
-        number_cost_params,
-        ):
-    
+    discount_factor,
+    approach,
+    starting_cost_params,
+    starting_expected_value_fun,
+    number_runs,
+    number_buses,
+    number_periods,
+    number_states,
+    number_cost_params,
+):
+
     # Initialize the set up for the nested fixed point algorithm
     stopping_crit_fixed_point = 1e-13
     switch_tolerance_fixed_point = 1e-2
 
     # Initialize the set up for MPEC
-    lower_bound = np.concatenate((np.full(number_states, -np.inf), np.full(number_cost_params, 0.0)))
-    upper_bound = np.concatenate((np.full(number_states, 500.0), np.full(number_cost_params, np.inf)))
+    lower_bound = np.concatenate(
+        (np.full(number_states, -np.inf), np.full(number_cost_params, 0.0))
+    )
+    upper_bound = np.concatenate(
+        (np.full(number_states, 500.0), np.full(number_cost_params, np.inf))
+    )
     rel_ipopt_stopping_tolerance = 1e-6
 
     init_dict_nfxp = {
@@ -35,7 +38,8 @@ def get_iskhakov_results(
         "optimizer": {
             "approach": "NFXP",
             "algorithm": "estimagic_bhhh",
-            # implies that we use analytical first order derivatives as opposed to numerical ones
+            # implies that we use analytical first order derivatives as opposed
+            # to numerical ones
             "gradient": "Yes",
         },
         "alg_details": {
@@ -53,7 +57,8 @@ def get_iskhakov_results(
         "optimizer": {
             "approach": "MPEC",
             "algorithm": "ipopt",
-            # implies that we use analytical first order derivatives as opposed to numerical ones
+            # implies that we use analytical first order derivatives as opposed
+            # to numerical ones
             "gradient": "Yes",
             "tol": rel_ipopt_stopping_tolerance,
             "set_lower_bounds": lower_bound,
@@ -62,22 +67,39 @@ def get_iskhakov_results(
     }
 
     # Initialize DataFrame to store the results of each run of the Monte Carlo simulation
-    index = pd.MultiIndex.from_product([discount_factor,
-                                        range(number_runs),
-                                        range(starting_cost_params.shape[1]),
-                                        approach],
-                                       names=["Discount Factor", "Run", "Start", "Approach"])
+    index = pd.MultiIndex.from_product(
+        [
+            discount_factor,
+            range(number_runs),
+            range(starting_cost_params.shape[1]),
+            approach,
+        ],
+        names=["Discount Factor", "Run", "Start", "Approach"],
+    )
 
-    columns=["RC", "theta_11", "theta_30", "theta_31", "theta_32", "theta_33",
-             "CPU Time", "Converged", "# of Major Iter.", "# of Func. Eval.",
-             "# of Bellm. Iter.", "# of N-K Iter."]
+    columns = [
+        "RC",
+        "theta_11",
+        "theta_30",
+        "theta_31",
+        "theta_32",
+        "theta_33",
+        "CPU Time",
+        "Converged",
+        "# of Major Iter.",
+        "# of Func. Eval.",
+        "# of Bellm. Iter.",
+        "# of N-K Iter.",
+    ]
 
     results = pd.DataFrame(index=index, columns=columns)
 
     # Main loop to calculate the results for each run
     for factor in discount_factor:
         # load simulated data
-        mat = scipy.io.loadmat("data/RustBusTableXSimDataMC250_beta" + str(int(100000*factor)))
+        mat = scipy.io.loadmat(
+            "data/RustBusTableXSimDataMC250_beta" + str(int(100000 * factor))
+        )
 
         for run in range(number_runs):
             data = process_data(mat, run, number_buses, number_periods)
@@ -85,29 +107,38 @@ def get_iskhakov_results(
             for start in range(starting_cost_params.shape[1]):
                 # Adapt the Initiation Dictionairy of NFXP for this run
                 init_dict_nfxp["model_specifications"]["discount_factor"] = factor
-                init_dict_nfxp["optimizer"]["params"] = pd.DataFrame(starting_cost_params[:, start], columns=["value"])
+                init_dict_nfxp["optimizer"]["params"] = pd.DataFrame(
+                    starting_cost_params[:, start], columns=["value"]
+                )
 
                 # Run NFXP using ruspy
-                transition_result_nfxp, cost_result_nfxp = estimate(init_dict_nfxp, data)
+                transition_result_nfxp, cost_result_nfxp = estimate(
+                    init_dict_nfxp, data
+                )
 
                 # store the results of this run
                 results.loc[factor, run, start, "NFXP"] = process_result(
-                    "NFXP", transition_result_nfxp, cost_result_nfxp, number_states)
+                    "NFXP", transition_result_nfxp, cost_result_nfxp, number_states
+                )
 
                 # Adapt the Initiation Dictionairy of MPEC for this run
                 init_dict_mpec["model_specifications"]["discount_factor"] = factor
-                init_dict_mpec["optimizer"]["params"] = np.concatenate((
-                    starting_expected_value_fun, starting_cost_params[:, start]))
+                init_dict_mpec["optimizer"]["params"] = np.concatenate(
+                    (starting_expected_value_fun, starting_cost_params[:, start])
+                )
 
                 # Run MPEC using ruspy
-                transition_result_mpec, cost_result_mpec = estimate(init_dict_mpec, data)
+                transition_result_mpec, cost_result_mpec = estimate(
+                    init_dict_mpec, data
+                )
 
                 # store the results of this run
-                results.loc[
-                    factor, run, start, "MPEC"].loc[
-                    ~results.columns.isin(["# of Bellm. Iter.", "# of N-K Iter."])] = process_result(
-                            "MPEC", transition_result_mpec, cost_result_mpec, number_states)
-    
+                results.loc[factor, run, start, "MPEC"].loc[
+                    ~results.columns.isin(["# of Bellm. Iter.", "# of N-K Iter."])
+                ] = process_result(
+                    "MPEC", transition_result_mpec, cost_result_mpec, number_states
+                )
+
     return results
 
 
