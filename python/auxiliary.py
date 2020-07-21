@@ -1,108 +1,164 @@
-"""This module contains auxiliary function which we use in the example notebook."""
-import json
-
-import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
-from scipy.stats import norm
-import pandas as pd
 import numpy as np
+import pandas as pd
+import scipy.io
 
-from grmpy.estimate.estimate_output import calculate_mte
-from grmpy.read.read import read
+from ruspy.estimation.estimation import estimate
 
 
-def process_data(df, output_file):
-    """This function adds squared and interaction terms to the Cainero data set."""
-
-    # Delete redundant columns\n",
-    for key_ in ['newid', 'caseid']:
-        del df[key_]
-
-    # Add squared terms
-    for key_ in ['mhgc', 'cafqt', 'avurate', 'lurate_17', 'numsibs', 'lavlocwage17']:
-        str_ = key_ + 'sq'
-        df[str_] = df[key_] ** 2
-
-    # Add interaction terms
-    for j in ['pub4', 'lwage5_17', 'lurate_17', 'tuit4c']:
-        for i in ['cafqt', 'mhgc', 'numsibs']:
-            df[j + i] = df[j] * df[i]
-
-    df.to_pickle(output_file + '.pkl')
-
+def get_iskhakov_results(
+        discount_factor,
+        approach,
+        starting_cost_params,
+        starting_expected_value_fun,
+        number_runs,
+        number_buses,
+        number_periods,
+        number_states,
+        number_cost_params,
+        ):
     
-def plot_est_mte(rslt, file):
-    """This function calculates the marginal treatment effect for different quartiles of the
-    unobservable V. ased on the calculation results."""
+    # Initialize the set up for the nested fixed point algorithm
+    stopping_crit_fixed_point = 1e-13
+    switch_tolerance_fixed_point = 1e-2
 
-    init_dict = read(file)
-    data_frame = pd.read_pickle(init_dict['ESTIMATION']['file'])
+    # Initialize the set up for MPEC
+    lower_bound = np.concatenate((np.full(number_states, -np.inf), np.full(number_cost_params, 0.0)))
+    upper_bound = np.concatenate((np.full(number_states, 500.0), np.full(number_cost_params, np.inf)))
+    rel_ipopt_stopping_tolerance = 1e-6
 
-    # Define the Quantiles and read in the original results
-    quantiles = [0.0001] + np.arange(0.01, 1., 0.01).tolist() + [0.9999]
-    mte_ = json.load(open('data/mte_original.json', 'r'))
-    mte_original = mte_[1]
-    mte_original_d = mte_[0]
-    mte_original_u = mte_[2]
+    init_dict_nfxp = {
+        "model_specifications": {
+            "number_states": number_states,
+            "maint_cost_func": "linear",
+            "cost_scale": 1e-3,
+        },
+        "optimizer": {
+            "approach": "NFXP",
+            "algorithm": "estimagic_bhhh",
+            # implies that we use analytical first order derivatives as opposed to numerical ones
+            "gradient": "Yes",
+        },
+        "alg_details": {
+            "threshold": stopping_crit_fixed_point,
+            "switch_tol": switch_tolerance_fixed_point,
+        },
+    }
 
-    # Calculate the MTE and confidence intervals
-    mte = calculate_mte(rslt, data_frame, quantiles)
-    mte = [i / 3 for i in mte]
-    mte_up, mte_d = calculate_cof_int(rslt, init_dict, data_frame, mte, quantiles)
+    init_dict_mpec = {
+        "model_specifications": {
+            "number_states": number_states,
+            "maint_cost_func": "linear",
+            "cost_scale": 1e-3,
+        },
+        "optimizer": {
+            "approach": "MPEC",
+            "algorithm": "ipopt",
+            # implies that we use analytical first order derivatives as opposed to numerical ones
+            "gradient": "Yes",
+            "tol": rel_ipopt_stopping_tolerance,
+            "set_lower_bounds": lower_bound,
+            "set_upper_bounds": upper_bound,
+        },
+    }
 
-    # Plot both curves
-    ax = plt.figure(figsize=(17.5, 10)).add_subplot(111)
+    # Initialize DataFrame to store the results of each run of the Monte Carlo simulation
+    index = pd.MultiIndex.from_product([discount_factor,
+                                        range(number_runs),
+                                        range(starting_cost_params.shape[1]),
+                                        approach],
+                                       names=["Discount Factor", "Run", "Start", "Approach"])
 
-    ax.set_ylabel(r"$B^{MTE}$", fontsize=24)
-    ax.set_xlabel("$u_D$", fontsize=24)
-    ax.tick_params(axis='both', which='major', labelsize=18)
-    ax.plot(quantiles, mte, label='grmpy $B^{MTE}$', color='blue', linewidth=4)
-    ax.plot(quantiles, mte_up, color='blue', linestyle=':', linewidth=3)
-    ax.plot(quantiles, mte_d, color='blue', linestyle=':', linewidth=3)
-    ax.plot(quantiles, mte_original, label='original$B^{MTE}$', color='orange', linewidth=4)
-    ax.plot(quantiles, mte_original_d, color='orange', linestyle=':',linewidth=3)
-    ax.plot(quantiles, mte_original_u, color='orange', linestyle=':', linewidth=3)
-    ax.set_ylim([-0.41, 0.51])
-    ax.set_xlim([-0.005, 1.005])
+    columns=["RC", "theta_11", "theta_30", "theta_31", "theta_32", "theta_33",
+             "CPU Time", "Converged", "# of Major Iter.", "# of Func. Eval.",
+             "# of Bellm. Iter.", "# of N-K Iter."]
 
-    blue_patch = mpatches.Patch(color='blue', label='original $B^{MTE}$')
-    orange_patch = mpatches.Patch(color='orange', label='grmpy $B^{MTE}$')
-    plt.legend(handles=[blue_patch, orange_patch],prop={'size': 16})
-    plt.show()
+    results = pd.DataFrame(index=index, columns=columns)
 
-    return mte
+    # Main loop to calculate the results for each run
+    for factor in discount_factor:
+        # load simulated data
+        mat = scipy.io.loadmat("data/RustBusTableXSimDataMC250_beta" + str(int(100000*factor)))
 
-def calculate_cof_int(rslt, init_dict, data_frame, mte, quantiles):
-    """This function calculates the confidence interval of the marginal treatment effect."""
+        for run in range(number_runs):
+            data = process_data(mat, run, number_buses, number_periods)
 
-    # Import parameters and inverse hessian matrix
-    hess_inv = rslt['AUX']['hess_inv'] / data_frame.shape[0]
-    params = rslt['AUX']['x_internal']
+            for start in range(starting_cost_params.shape[1]):
+                # Adapt the Initiation Dictionairy of NFXP for this run
+                init_dict_nfxp["model_specifications"]["discount_factor"] = factor
+                init_dict_nfxp["optimizer"]["params"] = pd.DataFrame(starting_cost_params[:, start], columns=["value"])
 
-    # Distribute parameters
-    dist_cov = hess_inv[-4:, -4:]
-    param_cov = hess_inv[:46, :46]
-    dist_gradients = np.array([params[-4], params[-3], params[-2], params[-1]])
+                # Run NFXP using ruspy
+                transition_result_nfxp, cost_result_nfxp = estimate(init_dict_nfxp, data)
 
-    # Process data
-    covariates = init_dict['TREATED']['order']
-    x = np.mean(data_frame[covariates]).tolist()
-    x_neg = [-i for i in x]
-    x += x_neg
-    x = np.array(x)
+                # store the results of this run
+                results.loc[factor, run, start, "NFXP"] = process_result(
+                    "NFXP", transition_result_nfxp, cost_result_nfxp, number_states)
 
-    # Create auxiliary parameters
-    part1 = np.dot(x, np.dot(param_cov, x))
-    part2 = np.dot(dist_gradients, np.dot(dist_cov, dist_gradients))
-    # Prepare two lists for storing the values
-    mte_up = []
-    mte_d = []
+                # Adapt the Initiation Dictionairy of MPEC for this run
+                init_dict_mpec["model_specifications"]["discount_factor"] = factor
+                init_dict_mpec["optimizer"]["params"] = np.concatenate((
+                    starting_expected_value_fun, starting_cost_params[:, start]))
 
-    # Combine all auxiliary parameters and calculate the confidence intervals
-    for counter, i in enumerate(quantiles):
-        value = part2 * (norm.ppf(i)) ** 2
-        aux = np.sqrt(part1 + value) / 4
-        mte_up += [mte[counter] + norm.ppf(0.95) * aux]
-        mte_d += [mte[counter] - norm.ppf(0.95) * aux]
+                # Run MPEC using ruspy
+                transition_result_mpec, cost_result_mpec = estimate(init_dict_mpec, data)
 
-    return mte_up, mte_d
+                # store the results of this run
+                results.loc[
+                    factor, run, start, "MPEC"].loc[
+                    ~results.columns.isin(["# of Bellm. Iter.", "# of N-K Iter."])] = process_result(
+                            "MPEC", transition_result_mpec, cost_result_mpec, number_states)
+    
+    return results
+
+
+def process_data(df, run, number_buses, number_periods):
+    state = df["MC_xt"][:, :, run] - 1
+    decision = df["MC_dt"][:, :, run]
+    usage = df["MC_dx"][:-1, :, run] - 1
+    first_usage = np.full((1, usage.shape[1]), np.nan)
+    usage = np.vstack((first_usage, usage))
+
+    data = pd.DataFrame()
+    state_new = state[:, 0]
+    decision_new = decision[:, 0]
+    usage_new = usage[:, 0]
+
+    for i in range(0, len(state[0, :]) - 1):
+        state_new = np.hstack((state_new, state[:, i + 1]))
+        decision_new = np.hstack((decision_new, decision[:, i + 1]))
+        usage_new = np.hstack((usage_new, usage[:, i + 1]))
+
+    data["state"] = state_new
+    data["decision"] = decision_new
+    data["usage"] = usage_new
+
+    iterables = [range(number_buses), range(number_periods)]
+    index = pd.MultiIndex.from_product(iterables, names=["Bus_ID", "period"])
+    data.set_index(index, inplace=True)
+
+    return data
+
+
+def process_result(approach, transition_result, cost_result, number_states):
+    if approach == "NFXP":
+        result = np.concatenate((cost_result["x"], transition_result["x"][:4]))
+
+        for name in [
+            "time",
+            "status",
+            "n_iterations",
+            "n_evaluations",
+            "n_contraction_steps",
+            "n_newt_kant_steps",
+        ]:
+            result = np.concatenate((result, np.array([cost_result[name]])))
+
+    else:
+        result = np.concatenate(
+            (cost_result["x"][number_states:], transition_result["x"][:4])
+        )
+
+        for name in ["time", "status", "n_iterations", "n_evaluations"]:
+            result = np.concatenate((result, np.array([cost_result[name]])))
+
+    return result

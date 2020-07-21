@@ -15,7 +15,7 @@
 *.ipynb_checkpoints
 
 # Folder
-__pychache__/
+__pycache__
 .pytest_cache/
 
 
