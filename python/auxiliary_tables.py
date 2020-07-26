@@ -4,6 +4,25 @@ import scipy.io
 
 
 def get_table_1(results, number_runs, starting_cost_params):
+    """
+    Create Table 1 in my thesis.
+
+    Parameters
+    ----------
+    results : pd.DataFrame
+        the results of the Monte Carlo simulation in Iskhakov et al. (2016)
+        calculated in ``get_iskhakov_results``.
+    number_runs : float
+        number of runs per beta and starting vector combination.
+    starting_cost_params : numpy.array
+        contains the starting values for the cost parameters.
+
+    Returns
+    -------
+    table_1 : pd.DataFrame
+        contains Table 1 of my thesis.
+
+    """
     columns_table_1 = [
         "CPU Time",
         "Converged",
@@ -27,6 +46,29 @@ def get_table_1(results, number_runs, starting_cost_params):
 
 
 def get_table_2(results, discount_factor, approach):
+    """
+    Create the table of the Iskahkov Monte Carlo simulation as done in
+    Table I of Su and Judd (2012). It can be found in appendix A of my thesis.
+
+    Parameters
+    ----------
+    results : pd.DataFrame
+        the results of the Monte Carlo simulation in Iskhakov et al. (2016)
+        calculated in ``get_iskhakov_results``.
+    discount_factor : list
+        beta vector for which to run the simulation.
+    approach : list
+        run with NFXP and/or MPEC.
+
+    Returns
+    -------
+    table : pd.DataFrame
+        contains my results of NFXP and MPEC used for Table 2.
+    NFXP_Iskhakov : pd.DataFrame
+        the results of the Monte Carlo simulation originally retrieved from
+        their matlab code.
+
+    """
     # Create Table I from Su & Judd (2012) with the simulated values from Iskahkov et al. (2016)
     columns_table = ["RC", "theta_11"]
     table_temp = (

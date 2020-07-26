@@ -59,3 +59,23 @@ In the light of that, the algorithms by \citeauthor{Iskhakov.2016} are slightly 
 \end{table}
 
 My implementations overestimate the true parameter slightly for $RC$ while coming gradually closer to the true value with increasing $\beta$. This pattern can also be seen in Table I of \cite{Su.Judd.2012} (who base their analysis on the same data generating process) which makes me confident that my results are correct. It seems like for $\beta = 0.995$ the NFXP Iskhakov is trapped in another local minimum that causes it to overestimate the true $\theta_{11}$ by a lot and suddenly underestimate the true $RC$. As mentioned before, this is likely to be caused by the fact that their code did not run through and it is not obviously clear whether the setup in the code is exactly like the one the published results are based on.
+
+\subsection{Appendix B: Tables}
+
+\begin{table}[H]
+	\centering
+	\caption{Correlation between Parameter Estimates}
+	\label{correlation}
+	\begin{tabular}{l | c c c c c c c}
+		\toprule\midrule
+		& $\hat{RC}$ & $\hat\theta_{11}$ & $\hat\theta_{30}$ & $\hat\theta_{31}$ & $\hat\theta_{32}$ & $\hat\theta_{33}$ \\ \midrule
+		$\hat{RC}$ & 1.0 & 0.97 & -0.04 & -0.01 & 0.00 & 0.15 \\
+		$\hat\theta_{11}$ & 0.97 & 1.0 & -0.02 & -0.03 & 0.01 &	0.14 \\
+		$\hat\theta_{30}$ &	-0.04 &	-0.02 &	1.0	& -0.26 & -0.31 & -0.07 \\
+		$\hat\theta_{31}$ &	-0.01 &	-0.03 &	-0.26 &	1.0 & -0.82 & -0.06 \\
+		$\hat\theta_{32}$ &	0.00 & 0.01 & -0.31 & -0.82 & 1.0 &	-0.12 \\
+		$\hat\theta_{33}$ &	0.15 & 0.14 & -0.07 & -0.06 & -0.12 & 1.0 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+

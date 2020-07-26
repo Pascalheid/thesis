@@ -263,7 +263,7 @@ As the Rust model does not allow to estimate the discount factor $\beta$, it has
 For each possible $\beta$, 250 data sets following the Rust model with the above parameters are simulated. In order to check for the robustness of the two approaches to different starting values, those are varied as well and each data set is estimated five times using the following different starting parameter guesses:
 
 \begin{equation*}
-	(RC^0, \theta^1_{11}) \in \{(4,1), (5, 2), (6, 3), (7, 4), (8, 5)\}.
+	(RC^0, \theta^0_{11}) \in \{(4,1), (5, 2), (6, 3), (7, 4), (8, 5)\}.
 \end{equation*}
 
 The continuous mileage state is discretized into a grid of 175 points, meaning that the unique fixed point of the expected values $EV$ is 175-dimensional vector. In the case of MPEC, also starting values for this vector have to be passed in which are always set to:
