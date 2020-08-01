@@ -11,8 +11,9 @@
 *.toc
 *.bib.sav
 *.bib.bak
-
 *.ipynb_checkpoints
+
+thesis_project_heid.egg-info
 
 # Folder
 __pycache__
