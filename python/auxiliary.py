@@ -540,7 +540,7 @@ def get_qoi(init_dict, params):
     return demand
 
 
-def sensitivity_simulation(specification, number_runs):
+def sensitivity_simulation(specification, number_runs, alg_nfxp):
     """
     performs a certain number of estimations with certain specifications
     on simulated data.
@@ -630,7 +630,7 @@ def sensitivity_simulation(specification, number_runs):
             },
             "optimizer": {
                 "approach": "NFXP",
-                "algorithm": "estimagic_bhhh",
+                "algorithm": alg_nfxp,
                 "gradient": specification["Analytical Gradient"],
             },
             "alg_details": {
@@ -667,6 +667,7 @@ def sensitivity_simulation(specification, number_runs):
             )
             results.to_pickle(
                 "data/sensitivity/sensitivity_specification_"
+                + alg_nfxp
                 + str(identifier)
                 + ".pickle"
             )
@@ -886,6 +887,7 @@ def get_specific_sensitivity(sensitivity_results, specifications):
         index = indexes[250 * spec : 250 * (spec + 1)]
         index_table = index[0][:5]
         temp_results = sensitivity_results.reindex(index)
+        temp_results = temp_results.loc[temp_results["Converged"] == 1]
         table.loc[(*index_table, "Mean"), :] = temp_results.mean()
         table.loc[(*index_table, "Standard Deviation"), :] = temp_results.std()
 
@@ -934,3 +936,75 @@ def get_difference_approach_per_run(sensitivity_results):
     table = table.astype(float)
 
     return table
+
+
+def get_extensive_specific_sensitivity(sensitivity_results, specifications):
+    """
+    get mean, standard deviations and confidence interval for pertubations in model
+    specification and numerical approach.
+
+    Parameters
+    ----------
+    sensitivity_results : pd.DataFrame
+        table with all runs of the sensitivity simulation.
+    specifications : list
+        contains the model specifications for which the means and standard
+        deviations are calculated.
+
+    Returns
+    -------
+    sensitivity_results_new : pd.DataFrame
+        the simulation results of the specificatiosn supplied.
+    table : pd.DataFrame
+        contains mean, standard deviation and confidence interval per specification.
+
+    """
+    indexes = []
+    original_index = sensitivity_results.index
+    for index in original_index:
+        if list(index[:4]) in specifications:
+            indexes.append(index)
+
+    sensitivity_results_new = sensitivity_results.loc[indexes, :]
+
+    index_table = []
+    for spec in np.arange(int(len(indexes) / 250)):
+        temp_index = list(indexes[250 * spec][:5])
+        for statistic in [
+            ["Mean"],
+            ["Upper SD"],
+            ["Lower SD"],
+            ["Upper Percentile"],
+            ["Lower Percentile"],
+        ]:
+            temp = temp_index.copy()
+            temp.extend(statistic)
+            index_table.append(tuple(temp))
+
+    names = list(sensitivity_results.index.names)
+    names[-1] = "Statistic"
+    index_table = pd.MultiIndex.from_tuples(index_table, names=names)
+    table = pd.DataFrame(index=index_table, columns=sensitivity_results.columns)
+
+    for spec in np.arange(int(len(indexes) / 250)):
+        index = indexes[250 * spec : 250 * (spec + 1)]
+        index_table = index[0][:5]
+        temp_results = sensitivity_results.reindex(index)
+        temp_results = temp_results.loc[temp_results["Converged"] == 1]
+        table.loc[(*index_table, "Mean"), :] = temp_results.mean()
+        table.loc[(*index_table, "Upper SD"), :] = (
+            temp_results.mean() + temp_results.std()
+        )
+        table.loc[(*index_table, "Lower SD"), :] = (
+            temp_results.mean() - temp_results.std()
+        )
+        table.loc[(*index_table, "Upper Percentile"), :] = temp_results.apply(
+            lambda x: np.percentile(x, 97.5, axis=0)
+        )
+        table.loc[(*index_table, "Lower Percentile"), :] = temp_results.apply(
+            lambda x: np.percentile(x, 2.25, axis=0)
+        )
+
+    table = table.astype(float)
+
+    return sensitivity_results_new, table

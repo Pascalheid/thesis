@@ -15,6 +15,7 @@ from ruspy.model_code.demand_function import get_demand
 
 from python.auxiliary import get_difference_approach
 from python.auxiliary import get_difference_approach_per_run
+from python.auxiliary import get_extensive_specific_sensitivity
 from python.auxiliary import get_iskhakov_results
 from python.auxiliary import get_specific_sensitivity
 from python.auxiliary import partial_sensitivity
@@ -24,6 +25,9 @@ from python.auxiliary import simulate_figure_3_and_4
 from python.auxiliary import transform_grid
 from python.auxiliary_figures import get_figure_2
 from python.auxiliary_figures import get_figure_3_and_4
+from python.auxiliary_figures import get_sensitivity_densitiy
+from python.auxiliary_figures import get_sensitivity_figure
+from python.auxiliary_figures import get_sensitivity_figure_single
 from python.auxiliary_tables import get_table_1
 from python.auxiliary_tables import get_table_2
 
@@ -176,25 +180,57 @@ specifications = list(zip(specifications, np.arange(len(specifications))))
 # fixed specifications
 number_runs = 250
 
-# run the extensive simulation with multiple cores
+# run the extensive simulation with multiple cores using the BHHH for NFXP
 # only works if before pip install -e . when being in the thesis directory
 sensitivity_results = Parallel(n_jobs=os.cpu_count(), verbose=50)(
-    delayed(sensitivity_simulation)(specification, number_runs)
+    delayed(sensitivity_simulation)(specification, number_runs, "estimagic_bhhh")
     for specification in specifications
 )
 
 # or alternatively normal run without joblib
 sensitivity_data = []
 for specification in specifications:
-    sensitivity_data.append(sensitivity_simulation(specification, number_runs))
+    sensitivity_data.append(
+        sensitivity_simulation(specification, number_runs, "estimagic_bhhh")
+    )
 
-# The simulation takes very long so you can also juts load the results below
+# add the simualation for NFXP with the scipy L-BFGS-B
+discount_factors = [0.975, 0.985]
+cost_functions = ["linear", "quadratic", "cubic"]
+scales = [1e-3, 1e-5, 1e-8]
+grid_sizes = [100, 200, 400]
+gradients = ["Yes", "No"]
+approaches = ["NFXP"]
+specifications = list(
+    itertools.product(
+        discount_factors, zip(cost_functions, scales), grid_sizes, gradients, approaches
+    )
+)
+specifications = list(zip(specifications, np.arange(len(specifications))))
+# fixed specifications
+number_runs = 250
+
+# only works if before pip install -e . when being in the thesis directory
+sensitivity_results = Parallel(n_jobs=os.cpu_count(), verbose=50)(
+    delayed(sensitivity_simulation)(specification, number_runs, "scipy_L-BFGS-B")
+    for specification in specifications
+)
+
+# or alternatively normal run without joblib
+sensitivity_data = []
+for specification in specifications:
+    sensitivity_data.append(
+        sensitivity_simulation(specification, number_runs, "scipy_L-BFGS-B")
+    )
+
+
+# The simulation takes very long so you can also just load the results below
 # load data
 sensitivity_data = []
-for specification in np.arange(46):
+for specification in np.arange(len(specifications)):
     sensitivity_data.append(
         pd.read_pickle(
-            "data/sensitivity/sensitivity_specification_"
+            "data/sensitivity/sensitivity_specification_test"
             + str(specification)
             + ".pickle"
         )
@@ -204,7 +240,7 @@ sensitivity_results = sensitivity_data[0]
 for data in sensitivity_data[1:]:
     sensitivity_results = sensitivity_results.append(data)
 
-# just for now but delete later or keep but declare it asan overview
+# just for now but delete later or keep but declare it as an overview
 # Get means and standard deviations for each specification
 table_1_temp = (
     sensitivity_results.loc[sensitivity_results["Converged"] == 1]
@@ -339,21 +375,120 @@ small_perturbations = get_specific_sensitivity(sensitivity_results, specificatio
 
 # partial change full (best case scenario)
 specifications = [[0.975, "linear", 400, "Yes"], [0.985, "linear", 400, "Yes"]]
-change_full_disc_fac = get_specific_sensitivity(sensitivity_results, specifications)[1]
+change_full_disc_fac, change_full_disc_fac_summary = get_specific_sensitivity(
+    sensitivity_results, specifications
+)
 
 specifications = [
     [0.975, "linear", 400, "Yes"],
     [0.975, "quadratic", 400, "Yes"],
     [0.975, "cubic", 400, "Yes"],
 ]
-change_full_cost_func = get_specific_sensitivity(sensitivity_results, specifications)[1]
+change_full_cost_func, change_full_cost_func_summary = get_specific_sensitivity(
+    sensitivity_results, specifications
+)
 
 specifications = [
     [0.975, "linear", 400, "Yes"],
     [0.975, "linear", 200, "Yes"],
     [0.975, "linear", 100, "Yes"],
 ]
-change_full_grid_size = get_specific_sensitivity(sensitivity_results, specifications)[1]
+change_full_grid_size, change_full_grid_size_summary = get_specific_sensitivity(
+    sensitivity_results, specifications
+)
 
 specifications = [[0.975, "linear", 400, "Yes"], [0.975, "linear", 400, "No"]]
-change_full_gradient = get_specific_sensitivity(sensitivity_results, specifications)[1]
+change_full_gradient, change_full_gradient_summary = get_specific_sensitivity(
+    sensitivity_results, specifications
+)
+
+# get figures
+# model dimension
+# only cost
+specifications = [
+    [0.975, "linear", 400, "Yes"],
+    [0.975, "quadratic", 400, "Yes"],
+    [0.975, "cubic", 400, "Yes"],
+]
+labels = ["linear", "quadratic", "cubic"]
+figure_name = "cost_func"
+a, sensitivity_data = get_extensive_specific_sensitivity(
+    sensitivity_results, specifications
+)
+get_sensitivity_figure(
+    sensitivity_data, specifications, labels, figure_name, legend=True
+)
+
+# cost and discount factor
+specifications = [
+    [0.975, "linear", 400, "Yes"],
+    [0.985, "linear", 400, "Yes"],
+    [0.985, "quadratic", 400, "Yes"],
+    [0.985, "cubic", 400, "Yes"],
+]
+labels = ["correct", r"$\beta$", r"$\beta$" " &\n quadratic", r"$\beta$" " &\n cubic"]
+figure_name = "cost_func_beta"
+sensitivity_data = get_extensive_specific_sensitivity(
+    sensitivity_results, specifications
+)[1]
+get_sensitivity_figure(sensitivity_data, specifications, labels, figure_name)
+
+# numerical dimension
+# just grid size
+specifications = [
+    [0.975, "linear", 400, "Yes"],
+    [0.975, "linear", 200, "Yes"],
+    [0.975, "linear", 100, "Yes"],
+]
+labels = ["grid\n400", "grid\n200", "grid\n100"]
+figure_name = "grid_size"
+sensitivity_data = get_extensive_specific_sensitivity(
+    sensitivity_results, specifications
+)[1]
+get_sensitivity_figure(sensitivity_data, specifications, labels, figure_name)
+
+# gradient and grid size
+specifications = [
+    [0.975, "linear", 400, "Yes"],
+    [0.975, "linear", 400, "No"],
+    [0.975, "linear", 200, "No"],
+    [0.975, "linear", 100, "No"],
+]
+labels = ["correct", "num.\ngradient", "num.&\ngrid 200", "num.&\ngrid 100"]
+figure_name = "num_gradient_grid_size"
+sensitivity_data = get_extensive_specific_sensitivity(
+    sensitivity_results, specifications
+)[1]
+get_sensitivity_figure(sensitivity_data, specifications, labels, figure_name)
+
+# all together
+specifications = [
+    [0.975, "linear", 400, "Yes"],
+    [0.985, "linear", 400, "Yes"],
+    [0.985, "quadratic", 400, "Yes"],
+    [0.985, "cubic", 400, "Yes"],
+    [0.985, "cubic", 400, "No"],
+    [0.985, "cubic", 200, "No"],
+    [0.985, "cubic", 100, "No"],
+]
+labels = len(specifications) * [""]
+figure_name = "all"
+sensitivity_data = get_extensive_specific_sensitivity(
+    sensitivity_results, specifications
+)[1]
+get_sensitivity_figure(sensitivity_data, specifications, labels, figure_name)
+# get the above figure split up
+get_sensitivity_figure_single(
+    sensitivity_data, specifications, labels, figure_name, "NFXP"
+)
+get_sensitivity_figure_single(
+    sensitivity_data, specifications, labels, figure_name, "MPEC"
+)
+
+# look at probability distributions per specification
+get_sensitivity_densitiy(
+    sensitivity_results, "MPEC", False, "MPEC_density", np.arange(72), mark=[27, 45]
+)
+get_sensitivity_densitiy(
+    sensitivity_results, "MPEC", True, "MPEC_density", np.arange(72), mark=[27, 45]
+)

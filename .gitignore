@@ -12,12 +12,14 @@
 *.bib.sav
 *.bib.bak
 *.ipynb_checkpoints
-
+test_*
 thesis_project_heid.egg-info
 
 # Folder
 __pycache__
 .pytest_cache/
+**/intermediate
+**/sensitivity
 
 
 # Jupyter

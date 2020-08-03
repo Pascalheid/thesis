@@ -4,6 +4,7 @@ Contains all the functions needed to obtain the figures in my thesis.
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from matplotlib.lines import Line2D
 
 
 def get_figure_2(results, beta):
@@ -122,3 +123,289 @@ def get_figure_3_and_4(demand, rc_range, true_demand):
 
     ax.legend()
     plt.savefig("figures/figure_3.png", dpi=1000)
+
+
+def get_sensitivity_figure(
+    sensitivity_table, specifications, labels, figure_name, legend=False
+):
+    """
+    creates Figures x to y in the paper.
+
+    Parameters
+    ----------
+    sensitivity_table : pd.DataFrame
+        the sensitivity_results_new of the ``get_extensive_specific_sensitivity``
+        function for a given specification.
+    specifications : list
+        list of lists that consist the specifications of interest.
+    labels : list
+        list of strings that are the labels for the x axis.
+    figure_name : string
+        how to name the figure when saving it.
+
+    Returns
+    -------
+    None.
+
+    """
+    fig, ax = plt.subplots(1, 2, sharey=True)
+    for axis, approach in enumerate(["NFXP", "MPEC"]):
+        ax[axis].scatter(
+            np.arange(len(specifications)),
+            sensitivity_table.loc[
+                (slice(None), slice(None), slice(None), slice(None), approach, "Mean"),
+                "Demand",
+            ],
+            color=sns.color_palette("Blues")[5],
+            marker="_",
+            s=150,
+            label="Mean",
+            zorder=1,
+        )
+        for statistic in [
+            ("Lower SD", "Upper SD", 3, 0.05, r"$\sigma$-Interval"),
+            ("Lower Percentile", "Upper Percentile", 1, -0.05, "95% CI"),
+        ]:
+            ax[axis].scatter(
+                np.arange(len(specifications)) + statistic[3],
+                sensitivity_table.loc[
+                    (
+                        slice(None),
+                        slice(None),
+                        slice(None),
+                        slice(None),
+                        approach,
+                        statistic[0],
+                    ),
+                    "Demand",
+                ],
+                color=sns.color_palette("Blues")[statistic[2]],
+                marker="_",
+                zorder=0,
+            )
+            ax[axis].scatter(
+                np.arange(len(specifications)) + statistic[3],
+                sensitivity_table.loc[
+                    (
+                        slice(None),
+                        slice(None),
+                        slice(None),
+                        slice(None),
+                        approach,
+                        statistic[1],
+                    ),
+                    "Demand",
+                ],
+                color=sns.color_palette("Blues")[statistic[2]],
+                marker="_",
+                zorder=0,
+            )
+
+            ax[axis].vlines(
+                np.arange(len(specifications)) + statistic[3],
+                sensitivity_table.loc[
+                    (
+                        slice(None),
+                        slice(None),
+                        slice(None),
+                        slice(None),
+                        approach,
+                        statistic[1],
+                    ),
+                    "Demand",
+                ],
+                sensitivity_table.loc[
+                    (
+                        slice(None),
+                        slice(None),
+                        slice(None),
+                        slice(None),
+                        approach,
+                        statistic[0],
+                    ),
+                    "Demand",
+                ],
+                color=sns.color_palette("Blues")[statistic[2]],
+                zorder=0,
+                label=statistic[4],
+            )
+        ax[axis].set_title(approach)
+        ax[axis].axhline(
+            y=11.0952, c="black", linewidth=0.5, linestyle="--", label="True Demand"
+        )
+        ax[axis].set_xticks(np.arange(len(specifications)))
+        ax[axis].set_xticklabels(labels)
+        ax[0].set_ylabel("Demand")
+        if legend is True:
+            ax[0].legend()
+    plt.savefig("figures/figure_" + figure_name + ".png", dpi=1000)
+
+
+def get_sensitivity_figure_single(
+    sensitivity_table, specifications, labels, figure_name, approach, legend=False
+):
+    """
+    creates Figures x to y in the paper.
+
+    Parameters
+    ----------
+    sensitivity_table : pd.DataFrame
+        the sensitivity_results_new of the ``get_extensive_specific_sensitivity``
+        function for a given specification.
+    specifications : list
+        list of lists that consist the specifications of interest.
+    labels : list
+        list of strings that are the labels for the x axis.
+    figure_name : string
+        how to name the figure when saving it.
+
+    Returns
+    -------
+    None.
+
+    """
+    fig, ax = plt.subplots()
+    ax.scatter(
+        np.arange(len(specifications)),
+        sensitivity_table.loc[
+            (slice(None), slice(None), slice(None), slice(None), approach, "Mean"),
+            "Demand",
+        ],
+        color=sns.color_palette("Blues")[5],
+        marker="_",
+        s=150,
+        label="Mean",
+        zorder=1,
+    )
+    for statistic in [
+        ("Lower SD", "Upper SD", 3, 0.05, r"$\sigma$-Interval"),
+        ("Lower Percentile", "Upper Percentile", 1, -0.05, "95% CI"),
+    ]:
+        ax.scatter(
+            np.arange(len(specifications)) + statistic[3],
+            sensitivity_table.loc[
+                (
+                    slice(None),
+                    slice(None),
+                    slice(None),
+                    slice(None),
+                    approach,
+                    statistic[0],
+                ),
+                "Demand",
+            ],
+            color=sns.color_palette("Blues")[statistic[2]],
+            marker="_",
+            zorder=0,
+        )
+        ax.scatter(
+            np.arange(len(specifications)) + statistic[3],
+            sensitivity_table.loc[
+                (
+                    slice(None),
+                    slice(None),
+                    slice(None),
+                    slice(None),
+                    approach,
+                    statistic[1],
+                ),
+                "Demand",
+            ],
+            color=sns.color_palette("Blues")[statistic[2]],
+            marker="_",
+            zorder=0,
+        )
+
+        ax.vlines(
+            np.arange(len(specifications)) + statistic[3],
+            sensitivity_table.loc[
+                (
+                    slice(None),
+                    slice(None),
+                    slice(None),
+                    slice(None),
+                    approach,
+                    statistic[1],
+                ),
+                "Demand",
+            ],
+            sensitivity_table.loc[
+                (
+                    slice(None),
+                    slice(None),
+                    slice(None),
+                    slice(None),
+                    approach,
+                    statistic[0],
+                ),
+                "Demand",
+            ],
+            color=sns.color_palette("Blues")[statistic[2]],
+            zorder=0,
+            label=statistic[4],
+        )
+    ax.set_title(approach)
+    ax.axhline(y=11.0952, c="black", linewidth=0.5, linestyle="--", label="True Demand")
+    ax.set_xticks(np.arange(len(specifications)))
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Demand")
+    if legend is True:
+        ax.legend()
+    plt.savefig("figures/figure_" + figure_name + ".png", dpi=1000)
+
+
+def get_sensitivity_densitiy(
+    sensitivity_results, approach, cumulative, figure_name, specification_range, mark=()
+):
+    """
+    plots the density function or cdf of the quantity of interest across
+    a range of specifications.
+
+    Parameters
+    ----------
+    sensitivity_results : pd.DataFrame
+        table with all runs of the sensitivity simulation.
+    approach : list
+        list of strings for which approach(es) the distribution is shown.
+    cumulative : bool
+        indicates whether the cdf instead of the densitiy is plotted.
+    mark : list
+        list of integers that describes the specification for which a darker
+        color should be used.
+    figure_name : str
+        name of the figure for saving.
+    specification_range : list
+        numbers of specifications for which the distribution is shown.
+
+    Returns
+    -------
+    None.
+
+    """
+    fig, ax = plt.subplots()
+    for spec in specification_range:
+        temp = sensitivity_results[250 * spec : 250 * (spec + 1)]
+        if temp.index[0][-2] in approach:
+            if list(temp.index[0][:4]) == [0.975, "linear", 400, "Yes"]:
+                color = sns.color_palette("Blues")[5]
+                zorder = 5
+            elif spec in mark:
+                color = sns.color_palette("Blues")[2]
+                zorder = 5
+            else:
+                color = sns.color_palette("Blues")[0]
+                zorder = 1
+            sns.kdeplot(
+                temp["Demand"], color=color, zorder=zorder, cumulative=cumulative
+            )
+    ax.set_xlabel(r"$Y$")
+    if cumulative is True:
+        ax.set_ylabel(r"$F_Y$")
+        ax.set
+    else:
+        ax.set_ylabel(r"$f_Y$")
+        ax.set_yticklabels([])
+
+    legend = [Line2D([0], [0], color=sns.color_palette("Blues")[5], lw=2)]
+    ax.legend(legend, ["correctly specified"])
+    plt.savefig("figures/" + figure_name + ".png", dpi=1000)
