@@ -149,7 +149,7 @@ def get_sensitivity_figure(
     None.
 
     """
-    fig, ax = plt.subplots(1, 2, sharey=True)
+    fig, ax = plt.subplots(1, 2, sharey=True, gridspec_kw={"wspace": 0.1})
     for axis, approach in enumerate(["NFXP", "MPEC"]):
         ax[axis].scatter(
             np.arange(len(specifications)),
@@ -409,6 +409,73 @@ def get_sensitivity_density(
 
     legend = [Line2D([0], [0], color=sns.color_palette("Blues")[5], lw=2)]
     ax.legend(legend, ["correctly specified"])
+    plt.savefig("figures/" + figure_name + ".png", dpi=1000)
+
+
+def get_sensitivity_density_both(
+    sensitivity_results, approach, figure_name, specification_range, mark=()
+):
+    """
+    plots the density function and cdf of the quantity of interest across
+    a range of specifications.
+
+    Parameters
+    ----------
+    sensitivity_results : pd.DataFrame
+        table with all runs of the sensitivity simulation.
+    approach : list
+        list of strings for which approach(es) the distribution is shown.
+    mark : list
+        list of integers that describes the specification for which a darker
+        color should be used.
+    figure_name : str
+        name of the figure for saving.
+    specification_range : list
+        numbers of specifications for which the distribution is shown.
+
+    Returns
+    -------
+    None.
+
+    """
+    fig, ax = plt.subplots(2, 1)
+    for number, cumulative in enumerate([False, True]):
+        for spec in specification_range:
+            temp = sensitivity_results[250 * spec : 250 * (spec + 1)]
+            if temp.index[0][-2] in approach:
+                if list(temp.index[0][:4]) == [0.975, "linear", 400, "Yes"]:
+                    color = sns.color_palette("Blues")[5]
+                    zorder = 5
+                elif spec in mark:
+                    color = sns.color_palette("Blues")[2]
+                    zorder = 5
+                else:
+                    color = sns.color_palette("Blues")[0]
+                    zorder = 1
+                sns.kdeplot(
+                    temp["Demand"],
+                    color=color,
+                    zorder=zorder,
+                    cumulative=cumulative,
+                    ax=ax[number],
+                    legend=False,
+                )
+        ax[number].set_xlabel(r"$Y$")
+        if cumulative is True:
+            ax[number].set_ylabel(r"$F_Y$")
+        else:
+            ax[number].set_ylabel(r"$f_Y$")
+            ax[number].set_yticklabels([])
+
+        legend = [
+            Line2D([0], [0], color=sns.color_palette("Blues")[5], lw=2),
+            Line2D([0], [0], color="black", lw=0.5, linestyle="--"),
+        ]
+        ax[number].axvline(
+            x=11.0952, c="black", linewidth=0.5, linestyle="--", label="True Demand"
+        )
+        ax[0].legend(legend, ["Correctly specified", "True Demand"])
+
     plt.savefig("figures/" + figure_name + ".png", dpi=1000)
 
 

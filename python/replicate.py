@@ -22,7 +22,7 @@ from python.auxiliary import transform_grid
 from python.auxiliary_figures import get_figure_2
 from python.auxiliary_figures import get_figure_3_and_4
 from python.auxiliary_figures import get_mse_figure
-from python.auxiliary_figures import get_sensitivity_density
+from python.auxiliary_figures import get_sensitivity_density_both
 from python.auxiliary_figures import get_sensitivity_figure
 from python.auxiliary_tables import get_table_1
 from python.auxiliary_tables import get_table_2
@@ -361,12 +361,10 @@ sensitivity_data = get_extensive_specific_sensitivity(
 get_mse_figure(sensitivity_data, specifications, "figure_10")
 
 # look at the distributions of the QoI per specification for MPEC
-get_sensitivity_density(
-    sensitivity_results_lbfgsb, "MPEC", False, "figure_11", np.arange(72), mark=[27, 45]
+get_sensitivity_density_both(
+    sensitivity_results_lbfgsb, "MPEC", "figure_11", np.arange(72), mark=[27, 45]
 )
-get_sensitivity_density(
-    sensitivity_results_lbfgsb, "MPEC", True, "figure_12", np.arange(72), mark=[27, 45]
-)
+
 
 # get figure 5 using the NFXP with BHHH instead of L-BFGS-B
 specifications = [
@@ -375,7 +373,7 @@ specifications = [
     [0.975, "cubic", 400, "Yes"],
 ]
 labels = ["correct", "quadratic", "cubic"]
-figure_name = "13"
+figure_name = "12"
 sensitivity_data = get_extensive_specific_sensitivity(
     sensitivity_results_bhhh, specifications
 )[1]
@@ -384,10 +382,6 @@ get_sensitivity_figure(
 )
 
 # look at the distributions of the QoI per specification for NFXP with L-BFGS-B
-get_sensitivity_density(
-    sensitivity_results_lbfgsb, "NFXP", False, "figure_14", np.arange(72), mark=[27, 45]
-)
-
-get_sensitivity_density(
-    sensitivity_results_lbfgsb, "NFXP", True, "figure_15", np.arange(72), mark=[27, 45]
+get_sensitivity_density_both(
+    sensitivity_results_lbfgsb, "NFXP", "figure_13", np.arange(72), mark=[27, 45]
 )
