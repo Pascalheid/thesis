@@ -13,21 +13,17 @@ from joblib import Parallel
 from ruspy.model_code.cost_functions import lin_cost
 from ruspy.model_code.demand_function import get_demand
 
-from python.auxiliary import get_difference_approach
-from python.auxiliary import get_difference_approach_per_run
 from python.auxiliary import get_extensive_specific_sensitivity
 from python.auxiliary import get_iskhakov_results
-from python.auxiliary import get_specific_sensitivity
-from python.auxiliary import partial_sensitivity
 from python.auxiliary import sensitivity_simulation
 from python.auxiliary import simulate_data
 from python.auxiliary import simulate_figure_3_and_4
 from python.auxiliary import transform_grid
 from python.auxiliary_figures import get_figure_2
 from python.auxiliary_figures import get_figure_3_and_4
-from python.auxiliary_figures import get_sensitivity_densitiy
+from python.auxiliary_figures import get_mse_figure
+from python.auxiliary_figures import get_sensitivity_density
 from python.auxiliary_figures import get_sensitivity_figure
-from python.auxiliary_figures import get_sensitivity_figure_single
 from python.auxiliary_tables import get_table_1
 from python.auxiliary_tables import get_table_2
 
@@ -44,7 +40,7 @@ number_states = 175
 number_cost_params = 2
 
 # get results for table 1
-# if you want to run the simulation (it took one night on my machine)
+# EITHER you can run the simulation (it took one night on my machine)
 results = get_iskhakov_results(
     discount_factor,
     approach,
@@ -56,7 +52,7 @@ results = get_iskhakov_results(
     number_states,
     number_cost_params,
 )
-# if you want rely on the supplied results
+# OR you can rely on the supplied results
 results = pd.read_pickle("data/get_iskhakov_results")
 
 # create table 1
@@ -69,21 +65,22 @@ my_results_table_2, iskhakov_table_2 = get_table_2(results, discount_factor, app
 beta = 0.975
 get_figure_2(results, beta)
 
-# simulate the demand function over the Monte Carlo runs (took an hour for me) and
-# get correlation of the estimated parameters as well as Figure 3 and 4
+# EITHER simulate the demand function over the Monte Carlo runs (took an hour for me)
+# and get correlation of the estimated parameters as well as Figure 3 and 4
 demand, rc_range, true_demand, correlation = simulate_figure_3_and_4(
     results, beta, number_states, number_buses
 )
 get_figure_3_and_4(demand, rc_range, true_demand)
 
-# alternatively load the previously simulated results
+# OR alternatively load the previously simulated results
 names = ["demand", "rc_range", "true_demand", "correlation"]
 temp = {}
 for name in names:
     temp[name] = pd.read_pickle(f"data/{name}.pickle")
 get_figure_3_and_4(temp["demand"], temp["rc_range"], temp["true_demand"])
 
-# get simulated data on which the sensitivity analysis is applied, running it yourself
+# EITHER get simulated data on which the sensitivity analysis is applied,
+# running it yourself
 # set up for simulation of data sets
 disc_fac = 0.975
 num_buses = 50
@@ -154,13 +151,13 @@ pickle.dump(simulated_data_200, open("data/simulated_data_200.pickle", "wb"))
 pickle.dump(simulated_data_100, open("data/simulated_data_100.pickle", "wb"))
 
 
-# alternatively just load the data sets
-simulated_data_400 = pickle.load("data/simulated_data_400.pickle", "rb")
-simulated_data_200 = pickle.load("data/simulated_data_200.pickle", "rb")
-simulated_data_100 = pickle.load("data/simulated_data_100.pickle", "rb")
+# OR alternatively just load the data sets
+simulated_data_400 = pickle.load(open("data/simulated_data_400.pickle", "rb"))
+simulated_data_200 = pickle.load(open("data/simulated_data_200.pickle", "rb"))
+simulated_data_100 = pickle.load(open("data/simulated_data_100.pickle", "rb"))
 
 
-# run sensitivity analysis from whose results all the tables and figures
+# EITHER run sensitivity analysis from whose results all the following figures
 # in the sensitivity section are derived
 
 # set up specifications for which the simulated data sets should be estimated
@@ -180,7 +177,7 @@ specifications = list(zip(specifications, np.arange(len(specifications))))
 # fixed specifications
 number_runs = 250
 
-# run the extensive simulation with multiple cores using the BHHH for NFXP
+# run the extensive simulation with multiple cores using the BHHH for NFXP and MPEC
 # only works if before pip install -e . when being in the thesis directory
 sensitivity_results = Parallel(n_jobs=os.cpu_count(), verbose=50)(
     delayed(sensitivity_simulation)(specification, number_runs, "estimagic_bhhh")
@@ -194,7 +191,8 @@ for specification in specifications:
         sensitivity_simulation(specification, number_runs, "estimagic_bhhh")
     )
 
-# add the simualation for NFXP with the scipy L-BFGS-B
+
+# add the simulation for NFXP with the scipy L-BFGS-B
 discount_factors = [0.975, 0.985]
 cost_functions = ["linear", "quadratic", "cubic"]
 scales = [1e-3, 1e-5, 1e-8]
@@ -224,85 +222,14 @@ for specification in specifications:
     )
 
 
-# The simulation takes very long so you can also just load the results below
+# OR as the simulation takes very long, you can also just load the results below
 # load data
-sensitivity_data = []
-for specification in np.arange(len(specifications)):
-    sensitivity_data.append(
-        pd.read_pickle(
-            "data/sensitivity/sensitivity_specification_test"
-            + str(specification)
-            + ".pickle"
-        )
-    )
-# transform data
-sensitivity_results = sensitivity_data[0]
-for data in sensitivity_data[1:]:
-    sensitivity_results = sensitivity_results.append(data)
-
-# just for now but delete later or keep but declare it as an overview
-# Get means and standard deviations for each specification
-table_1_temp = (
-    sensitivity_results.loc[sensitivity_results["Converged"] == 1]
-    .astype(float)
-    .groupby(
-        level=[
-            "Discount Factor",
-            "Cost Function",
-            "Grid Size",
-            "Analytical Gradient",
-            "Approach",
-        ]
-    )
+sensitivity_results_bhhh = pd.read_pickle("data/sensitivity_results_full_bhhh.pickle")
+sensitivity_results_lbfgsb = pd.read_pickle(
+    "data/sensitivity_results_full_lbfgsb.pickle"
 )
 
-statistics = ["Mean", "Standard Deviation"]
-index = pd.MultiIndex.from_product(
-    [discount_factors, cost_functions, grid_sizes, gradients, approaches, statistics],
-    names=[
-        "Discount Factor",
-        "Cost Function",
-        "Grid Size",
-        "Analytical Gradient",
-        "Approach",
-        "Statistic",
-    ],
-)
-table_1 = pd.DataFrame(index=index, columns=sensitivity_results.columns)
-table_1.loc(axis=0)[:, :, :, :, :, "Mean"] = table_1_temp.mean()
-table_1.loc(axis=0)[:, :, :, :, :, "Standard Deviation"] = table_1_temp.std()
-table_1_temp = (
-    sensitivity_results["Converged"]
-    .astype(float)
-    .groupby(
-        level=[
-            "Discount Factor",
-            "Cost Function",
-            "Grid Size",
-            "Analytical Gradient",
-            "Approach",
-        ]
-    )
-)
-table_1.loc[
-    (slice(None), slice(None), slice(None), slice(None), slice(None), "Mean"),
-    "Converged",
-] = table_1_temp.mean()
-table_1.loc[
-    (
-        slice(None),
-        slice(None),
-        slice(None),
-        slice(None),
-        slice(None),
-        "Standard Deviation",
-    ),
-    "Converged",
-] = table_1_temp.std()
-table_1 = table_1.astype(float)
-
-
-# Get true demand of the underlying data generating process
+# Get the true demand (the true QoI) of the underlying data generating process
 cost_params = np.array([11.7257, 2.4569])
 trans_params = np.array(
     [
@@ -342,67 +269,8 @@ true_demand = (
 )
 
 
-# get partial sensitivity
-partial_disc_fac = partial_sensitivity(
-    sensitivity_results, discount_factors, "Discount Factor"
-)
-partial_cost_func = partial_sensitivity(
-    sensitivity_results, cost_functions, "Cost Function"
-)
-partial_grid_size = partial_sensitivity(sensitivity_results, grid_sizes, "Grid Size")
-partial_gradient = partial_sensitivity(
-    sensitivity_results, gradients, "Analytical Gradient"
-)
-
-# get overall difference across NFXP and MPEC
-overall_difference = get_difference_approach(sensitivity_results)
-
-# difference NFXP and MPEC per run
-overall_per_run_difference = get_difference_approach_per_run(sensitivity_results)
-
-# partial change from correct specification
-specifications = [
-    [0.975, "linear", 400, "Yes"],
-    [0.985, "linear", 400, "Yes"],
-    [0.975, "quadratic", 400, "Yes"],
-    [0.975, "cubic", 400, "Yes"],
-    [0.975, "linear", 200, "Yes"],
-    [0.975, "linear", 100, "Yes"],
-    [0.975, "linear", 400, "No"],
-]
-
-small_perturbations = get_specific_sensitivity(sensitivity_results, specifications)[1]
-
-# partial change full (best case scenario)
-specifications = [[0.975, "linear", 400, "Yes"], [0.985, "linear", 400, "Yes"]]
-change_full_disc_fac, change_full_disc_fac_summary = get_specific_sensitivity(
-    sensitivity_results, specifications
-)
-
-specifications = [
-    [0.975, "linear", 400, "Yes"],
-    [0.975, "quadratic", 400, "Yes"],
-    [0.975, "cubic", 400, "Yes"],
-]
-change_full_cost_func, change_full_cost_func_summary = get_specific_sensitivity(
-    sensitivity_results, specifications
-)
-
-specifications = [
-    [0.975, "linear", 400, "Yes"],
-    [0.975, "linear", 200, "Yes"],
-    [0.975, "linear", 100, "Yes"],
-]
-change_full_grid_size, change_full_grid_size_summary = get_specific_sensitivity(
-    sensitivity_results, specifications
-)
-
-specifications = [[0.975, "linear", 400, "Yes"], [0.975, "linear", 400, "No"]]
-change_full_gradient, change_full_gradient_summary = get_specific_sensitivity(
-    sensitivity_results, specifications
-)
-
-# get figures
+# get figures 5 to 13 based on the simulation results from above
+# partial sensitivity
 # model dimension
 # only cost
 specifications = [
@@ -410,11 +278,11 @@ specifications = [
     [0.975, "quadratic", 400, "Yes"],
     [0.975, "cubic", 400, "Yes"],
 ]
-labels = ["linear", "quadratic", "cubic"]
-figure_name = "cost_func"
-a, sensitivity_data = get_extensive_specific_sensitivity(
-    sensitivity_results, specifications
-)
+labels = ["correct", "quadratic", "cubic"]
+figure_name = "5"
+sensitivity_data = get_extensive_specific_sensitivity(
+    sensitivity_results_lbfgsb, specifications
+)[1]
 get_sensitivity_figure(
     sensitivity_data, specifications, labels, figure_name, legend=True
 )
@@ -427,9 +295,9 @@ specifications = [
     [0.985, "cubic", 400, "Yes"],
 ]
 labels = ["correct", r"$\beta$", r"$\beta$" " &\n quadratic", r"$\beta$" " &\n cubic"]
-figure_name = "cost_func_beta"
+figure_name = "6"
 sensitivity_data = get_extensive_specific_sensitivity(
-    sensitivity_results, specifications
+    sensitivity_results_lbfgsb, specifications
 )[1]
 get_sensitivity_figure(sensitivity_data, specifications, labels, figure_name)
 
@@ -440,10 +308,10 @@ specifications = [
     [0.975, "linear", 200, "Yes"],
     [0.975, "linear", 100, "Yes"],
 ]
-labels = ["grid\n400", "grid\n200", "grid\n100"]
-figure_name = "grid_size"
+labels = ["correct", "grid\n200", "grid\n100"]
+figure_name = "7"
 sensitivity_data = get_extensive_specific_sensitivity(
-    sensitivity_results, specifications
+    sensitivity_results_lbfgsb, specifications
 )[1]
 get_sensitivity_figure(sensitivity_data, specifications, labels, figure_name)
 
@@ -455,9 +323,9 @@ specifications = [
     [0.975, "linear", 100, "No"],
 ]
 labels = ["correct", "num.\ngradient", "num.&\ngrid 200", "num.&\ngrid 100"]
-figure_name = "num_gradient_grid_size"
+figure_name = "8"
 sensitivity_data = get_extensive_specific_sensitivity(
-    sensitivity_results, specifications
+    sensitivity_results_lbfgsb, specifications
 )[1]
 get_sensitivity_figure(sensitivity_data, specifications, labels, figure_name)
 
@@ -472,23 +340,54 @@ specifications = [
     [0.985, "cubic", 100, "No"],
 ]
 labels = len(specifications) * [""]
-figure_name = "all"
+figure_name = "9"
 sensitivity_data = get_extensive_specific_sensitivity(
-    sensitivity_results, specifications
+    sensitivity_results_lbfgsb, specifications
 )[1]
 get_sensitivity_figure(sensitivity_data, specifications, labels, figure_name)
-# get the above figure split up
-get_sensitivity_figure_single(
-    sensitivity_data, specifications, labels, figure_name, "NFXP"
+
+# get MSE figure
+discount_factors = [0.975, 0.985]
+cost_functions = ["linear", "quadratic", "cubic"]
+grid_sizes = [100, 200, 400]
+gradients = ["Yes", "No"]
+specs = list(itertools.product(discount_factors, cost_functions, grid_sizes, gradients))
+specifications = []
+for spec in specs:
+    specifications.append(list(spec))
+sensitivity_data = get_extensive_specific_sensitivity(
+    sensitivity_results_lbfgsb, specifications
+)[1]
+get_mse_figure(sensitivity_data, specifications, "figure_10")
+
+# look at the distributions of the QoI per specification for MPEC
+get_sensitivity_density(
+    sensitivity_results_lbfgsb, "MPEC", False, "figure_11", np.arange(72), mark=[27, 45]
 )
-get_sensitivity_figure_single(
-    sensitivity_data, specifications, labels, figure_name, "MPEC"
+get_sensitivity_density(
+    sensitivity_results_lbfgsb, "MPEC", True, "figure_12", np.arange(72), mark=[27, 45]
 )
 
-# look at probability distributions per specification
-get_sensitivity_densitiy(
-    sensitivity_results, "MPEC", False, "MPEC_density", np.arange(72), mark=[27, 45]
+# get figure 5 using the NFXP with BHHH instead of L-BFGS-B
+specifications = [
+    [0.975, "linear", 400, "Yes"],
+    [0.975, "quadratic", 400, "Yes"],
+    [0.975, "cubic", 400, "Yes"],
+]
+labels = ["correct", "quadratic", "cubic"]
+figure_name = "13"
+sensitivity_data = get_extensive_specific_sensitivity(
+    sensitivity_results_bhhh, specifications
+)[1]
+get_sensitivity_figure(
+    sensitivity_data, specifications, labels, figure_name, legend=True
 )
-get_sensitivity_densitiy(
-    sensitivity_results, "MPEC", True, "MPEC_density", np.arange(72), mark=[27, 45]
+
+# look at the distributions of the QoI per specification for NFXP with L-BFGS-B
+get_sensitivity_density(
+    sensitivity_results_lbfgsb, "NFXP", False, "figure_14", np.arange(72), mark=[27, 45]
+)
+
+get_sensitivity_density(
+    sensitivity_results_lbfgsb, "NFXP", True, "figure_15", np.arange(72), mark=[27, 45]
 )

@@ -121,6 +121,7 @@ def get_figure_3_and_4(demand, rc_range, true_demand):
     )
     ax.vlines(lower_percentile, *ylim, colors=sns.light_palette("black")[1])
 
+    ax.set_yticklabels([])
     ax.legend()
     plt.savefig("figures/figure_3.png", dpi=1000)
 
@@ -237,7 +238,7 @@ def get_sensitivity_figure(
         ax[axis].set_xticklabels(labels)
         ax[0].set_ylabel("Demand")
         if legend is True:
-            ax[0].legend()
+            ax[1].legend()
     plt.savefig("figures/figure_" + figure_name + ".png", dpi=1000)
 
 
@@ -354,7 +355,7 @@ def get_sensitivity_figure_single(
     plt.savefig("figures/figure_" + figure_name + ".png", dpi=1000)
 
 
-def get_sensitivity_densitiy(
+def get_sensitivity_density(
     sensitivity_results, approach, cumulative, figure_name, specification_range, mark=()
 ):
     """
@@ -408,4 +409,53 @@ def get_sensitivity_densitiy(
 
     legend = [Line2D([0], [0], color=sns.color_palette("Blues")[5], lw=2)]
     ax.legend(legend, ["correctly specified"])
+    plt.savefig("figures/" + figure_name + ".png", dpi=1000)
+
+
+def get_mse_figure(sensitivity_table, specifications, figure_name):
+    """
+    plots the mean squared error of the demand QoI on the specification
+    of the simulation run per approach.
+
+    Parameters
+    ----------
+    sensitivity_table : pd.DataFrame
+        the sensitivity_results_new of the ``get_extensive_specific_sensitivity``
+        function for a given specification.
+    specifications : list
+        list of lists that consist the specifications of interest.
+    figure_name : string
+        how to name the figure when saving it.
+
+    Returns
+    -------
+    None.
+
+    """
+    fig, ax = plt.subplots()
+    for approach in [("MPEC", 5), ("NFXP", 3)]:
+        ax.scatter(
+            np.arange(len(specifications)),
+            sensitivity_table.loc[
+                (
+                    slice(None),
+                    slice(None),
+                    slice(None),
+                    slice(None),
+                    approach[0],
+                    "MSE",
+                ),
+                "Demand",
+            ],
+            color=sns.color_palette("Blues")[approach[1]],
+            marker=".",
+            # s=150,
+            label=approach[0],
+            zorder=approach[1],
+        )
+    ax.set_ylabel("Mean Squared Error of QoI")
+    ax.set_xlabel("Specification")
+    for spec in np.arange(0, 36, 5):
+        ax.axvline(spec, color="black", linestyle="--", linewidth=0.5)
+    ax.legend()
     plt.savefig("figures/" + figure_name + ".png", dpi=1000)

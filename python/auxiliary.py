@@ -461,7 +461,7 @@ def transform_grid(column):
     return column
 
 
-def process_result(approach, cost_result):
+def process_result(approach, cost_result, alg_nfxp):
     """
     process the raw results from a Monte Carlo simulation run in the
     ``sensitivity_simulation`` function.
@@ -492,6 +492,11 @@ def process_result(approach, cost_result):
             "n_newt_kant_steps",
         ]:
             result = np.concatenate((result, np.array([cost_result[name]])))
+        if alg_nfxp == "scipy_L-BFGS-B":
+            if result[2] == "success":
+                result[2] = 1
+            else:
+                result[2] = 0
 
     else:
         result = np.array([])
@@ -559,7 +564,6 @@ def sensitivity_simulation(specification, number_runs, alg_nfxp):
         contains results such as likelihood, estimated parameters etc per run.
 
     """
-
     # Initialize the set up for the nested fixed point algorithm
     stopping_crit_fixed_point = 1e-13
     switch_tolerance_fixed_point = 1e-2
@@ -649,22 +653,32 @@ def sensitivity_simulation(specification, number_runs, alg_nfxp):
         ]
 
         for run in np.arange(number_runs):
+            print(specification, run)
             # Run estimation
             data = data_sets[run]
-            transition_result_nfxp, cost_result_nfxp = estimate(init_dict_nfxp, data)
-            results.loc[(*indexer, run), (slice("RC", "theta_13"))][
-                : len(cost_result_nfxp["x"])
-            ] = cost_result_nfxp["x"]
-            results.loc[(*indexer, run), (slice("theta_30", "theta_310"))][
-                : len(transition_result_nfxp["x"])
-            ] = transition_result_nfxp["x"]
-            results.loc[(*indexer, run), column_slicer_nfxp] = process_result(
-                specification["Approach"], cost_result_nfxp
-            )
-            results.loc[(*indexer, run), "Demand"] = get_qoi(
-                init_dict_nfxp,
-                np.concatenate((transition_result_nfxp["x"], cost_result_nfxp["x"])),
-            )
+            try:
+                transition_result_nfxp, cost_result_nfxp = estimate(
+                    init_dict_nfxp, data
+                )
+                results.loc[(*indexer, run), (slice("RC", "theta_13"))][
+                    : len(cost_result_nfxp["x"])
+                ] = cost_result_nfxp["x"]
+                results.loc[(*indexer, run), (slice("theta_30", "theta_310"))][
+                    : len(transition_result_nfxp["x"])
+                ] = transition_result_nfxp["x"]
+                results.loc[(*indexer, run), column_slicer_nfxp] = process_result(
+                    specification["Approach"], cost_result_nfxp, alg_nfxp
+                )
+                results.loc[(*indexer, run), "Demand"] = get_qoi(
+                    init_dict_nfxp,
+                    np.concatenate(
+                        (transition_result_nfxp["x"], cost_result_nfxp["x"])
+                    ),
+                )
+            except TypeError:
+                results.loc[(*indexer, run), :] = results.shape[1] * np.nan
+                results.loc[(*indexer, run), "Converged"] = 0
+
             results.to_pickle(
                 "data/sensitivity/sensitivity_specification_"
                 + alg_nfxp
@@ -727,7 +741,7 @@ def sensitivity_simulation(specification, number_runs, alg_nfxp):
                 : len(transition_result_mpec["x"])
             ] = transition_result_mpec["x"]
             results.loc[(*indexer, run), column_slicer_mpec] = process_result(
-                specification["Approach"], cost_result_mpec
+                specification["Approach"], cost_result_mpec, alg_nfxp
             )
             results.loc[(*indexer, run), "Demand"] = get_qoi(
                 init_dict_mpec,
@@ -976,6 +990,7 @@ def get_extensive_specific_sensitivity(sensitivity_results, specifications):
             ["Lower SD"],
             ["Upper Percentile"],
             ["Lower Percentile"],
+            ["MSE"],
         ]:
             temp = temp_index.copy()
             temp.extend(statistic)
@@ -1003,6 +1018,12 @@ def get_extensive_specific_sensitivity(sensitivity_results, specifications):
         )
         table.loc[(*index_table, "Lower Percentile"), :] = temp_results.apply(
             lambda x: np.percentile(x, 2.25, axis=0)
+        )
+        table.loc[(*index_table, "MSE"), "Demand"] = (
+            temp_results["Demand"]
+            .to_frame()
+            .apply(lambda x: ((x - 11.095184215630066) ** 2).mean())
+            .to_numpy()[0]
         )
 
     table = table.astype(float)
