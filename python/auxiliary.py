@@ -545,7 +545,9 @@ def get_qoi(init_dict, params):
     return demand
 
 
-def sensitivity_simulation(specification, number_runs, alg_nfxp):
+def sensitivity_simulation(
+    specification, number_runs, alg_nfxp, tolerance=None, max_cont=20, max_nk=20
+):
     """
     performs a certain number of estimations with certain specifications
     on simulated data.
@@ -557,6 +559,14 @@ def sensitivity_simulation(specification, number_runs, alg_nfxp):
         grid size, derivative and approach is used for the estimation.
     number_runs : int
         number of runs per specification.
+    alg_nfxp : string
+        the algorithm used for the NFXP.
+    tolerance : dict
+        specifies the stopping tolerance for the optimizer of the NFXP.
+    max_cont : int
+        maximum number of contraction steps for the NFXP.
+    max_nk : int
+        maximum number of Newton-Kantorovich steps for the NFXP.
 
     Returns
     -------
@@ -564,6 +574,13 @@ def sensitivity_simulation(specification, number_runs, alg_nfxp):
         contains results such as likelihood, estimated parameters etc per run.
 
     """
+    # set default tolerance
+    if tolerance is None:
+        if alg_nfxp == "estimagic_bhhh":
+            tolerance = {"tol": {"abs": 1e-05, "rel": 1e-08}}
+        elif alg_nfxp == "scipy_L-BFGS-B":
+            tolerance = {"gtol": 1e-05}
+
     # Initialize the set up for the nested fixed point algorithm
     stopping_crit_fixed_point = 1e-13
     switch_tolerance_fixed_point = 1e-2
@@ -636,10 +653,13 @@ def sensitivity_simulation(specification, number_runs, alg_nfxp):
                 "approach": "NFXP",
                 "algorithm": alg_nfxp,
                 "gradient": specification["Analytical Gradient"],
+                "algo_options": tolerance,
             },
             "alg_details": {
                 "threshold": stopping_crit_fixed_point,
                 "switch_tol": switch_tolerance_fixed_point,
+                "max_contr_steps": max_cont,
+                "max_newt_kant_steps": max_nk,
             },
         }
         column_slicer_nfxp = [
@@ -973,11 +993,17 @@ def get_extensive_specific_sensitivity(sensitivity_results, specifications):
         contains mean, standard deviation and confidence interval per specification.
 
     """
-    indexes = []
     original_index = sensitivity_results.index
+    ordered_indexes = [[] for _ in range(len(specifications))]
     for index in original_index:
-        if list(index[:4]) in specifications:
-            indexes.append(index)
+        for order, spec in enumerate(specifications):
+            if list(index[:4]) == spec:
+                ordered_indexes[order].append(index)
+
+    indexes = []
+    for index in ordered_indexes:
+        for order in np.arange(len(ordered_indexes[0])):
+            indexes.append(index[order])
 
     sensitivity_results_new = sensitivity_results.loc[indexes, :]
 
@@ -1004,8 +1030,8 @@ def get_extensive_specific_sensitivity(sensitivity_results, specifications):
     for spec in np.arange(int(len(indexes) / 250)):
         index = indexes[250 * spec : 250 * (spec + 1)]
         index_table = index[0][:5]
-        temp_results = sensitivity_results.reindex(index)
-        temp_results = temp_results.loc[temp_results["Converged"] == 1]
+        temp_results_0 = sensitivity_results.reindex(index)
+        temp_results = temp_results_0.loc[temp_results_0["Converged"] == 1]
         table.loc[(*index_table, "Mean"), :] = temp_results.mean()
         table.loc[(*index_table, "Upper SD"), :] = (
             temp_results.mean() + temp_results.std()
@@ -1025,6 +1051,9 @@ def get_extensive_specific_sensitivity(sensitivity_results, specifications):
             .apply(lambda x: ((x - 11.095184215630066) ** 2).mean())
             .to_numpy()[0]
         )
+        table.loc[(*index_table, "Mean"), "Converged"] = temp_results_0[
+            "Converged"
+        ].mean()
 
     table = table.astype(float)
 

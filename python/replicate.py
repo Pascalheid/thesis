@@ -385,3 +385,93 @@ get_sensitivity_figure(
 get_sensitivity_density_both(
     sensitivity_results_lbfgsb, "NFXP", "figure_13", np.arange(72), mark=[27, 45]
 )
+
+
+# test lbfgsb with different tolerances
+base = 10
+level = np.ones(10)
+for i in np.arange(10):
+    base = base * 100
+    level[i] = level[i] / base
+
+discount_factors = [0.975, 0.985]
+cost_functions = ["linear", "quadratic", "cubic"]
+scales = [1e-3, 1e-5, 1e-8]
+grid_sizes = [100, 200, 400]
+gradients = ["Yes", "No"]
+approaches = ["NFXP"]
+specifications = list(
+    itertools.product(
+        discount_factors, zip(cost_functions, scales), grid_sizes, gradients, approaches
+    )
+)
+specifications = list(zip(specifications, np.arange(len(specifications))))
+# fixed specifications
+number_runs = 5
+
+sensitivity_results = {}
+for tol in level:
+    # only works if before pip install -e . when being in the thesis directory
+    sensitivity_results[str(tol)] = Parallel(n_jobs=os.cpu_count(), verbose=50)(
+        delayed(sensitivity_simulation)(
+            specification, number_runs, "scipy_L-BFGS-B", tolerance={"gtol": tol}
+        )
+        for specification in specifications
+    )
+
+for tol in level:
+    temp = sensitivity_results[str(tol)].copy()
+    sensitivity_results[str(tol)] = temp[0]
+    for data in temp[1:]:
+        sensitivity_results[str(tol)] = sensitivity_results[str(tol)].append(data)
+
+# test BHHH with other tolerances
+level = [
+    (1e-03, 1e-06),
+    (1e-05, 1e-08),
+    (1e-07, 1e-10),
+    (1e-09, 1e-12),
+    (1e-11, 1e-14),
+    (1e-13, 1e-16),
+]
+
+sensitivity_results = {}
+for tol in level:
+    # only works if before pip install -e . when being in the thesis directory
+    sensitivity_results[str(tol)] = Parallel(n_jobs=os.cpu_count(), verbose=50)(
+        delayed(sensitivity_simulation)(
+            specification,
+            number_runs,
+            "estimagic_bhhh",
+            tolerance={"tol": {"abs": tol[0], "rel": tol[1]}},
+        )
+        for specification in specifications
+    )
+
+for tol in level:
+    temp = sensitivity_results[str(tol)].copy()
+    sensitivity_results[str(tol)] = temp[0]
+    for data in temp[1:]:
+        sensitivity_results[str(tol)] = sensitivity_results[str(tol)].append(data)
+
+# check for number of contraction and N-K steps
+sensitivity_results = Parallel(n_jobs=os.cpu_count(), verbose=50)(
+    delayed(sensitivity_simulation)(
+        specification, number_runs, "scipy_L-BFGS-B", max_cont=40, max_nk=40
+    )
+    for specification in specifications
+)
+
+sensitivity_results = Parallel(n_jobs=os.cpu_count(), verbose=50)(
+    delayed(sensitivity_simulation)(
+        specification, number_runs, "estimagic_bhhh", max_cont=40, max_nk=40
+    )
+    for specification in specifications
+)
+
+
+# spec=specifications[0]
+# tol=(1e-03, 1e-06)
+# a=sensitivity_simulation(spec, number_runs, "estimagic_bhhh",
+#                        tolerance={"tol": {"abs": tol[0], "rel": tol[1]}},
+#                        max_cont=40, max_nk=40)
