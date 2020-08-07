@@ -695,7 +695,11 @@ def sensitivity_simulation(
                         (transition_result_nfxp["x"], cost_result_nfxp["x"])
                     ),
                 )
-            except TypeError:
+            # the N-K step sometimes cannot be found due to a LinAlgError
+            # somehow estimagic cannot handle this and translate it into nonconvergence
+            # instead it raises a ValueError
+            # below I manually translate this into nonconvergence
+            except ValueError:
                 results.loc[(*indexer, run), :] = results.shape[1] * np.nan
                 results.loc[(*indexer, run), "Converged"] = 0
 

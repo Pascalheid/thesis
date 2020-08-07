@@ -475,3 +475,8 @@ sensitivity_results = Parallel(n_jobs=os.cpu_count(), verbose=50)(
 # a=sensitivity_simulation(spec, number_runs, "estimagic_bhhh",
 #                        tolerance={"tol": {"abs": tol[0], "rel": tol[1]}},
 #                        max_cont=40, max_nk=40)
+
+# for number in np.arange(0, 72, 2):
+#     get_sensitivity_density_both(
+#         sensitivity_results_lbfgsb, "NFXP", "bla", np.arange(72), mark=[number]
+#     )
