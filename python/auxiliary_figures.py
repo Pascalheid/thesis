@@ -60,8 +60,6 @@ def get_figure_3_and_4(demand, rc_range, true_demand):
     std_lower_bound = mean - std
     lower_percentile = np.percentile(data, 2.5, axis=1)
     upper_percentile = np.percentile(data, 97.5, axis=1)
-    ci_lower_bound = 2 * mean - upper_percentile
-    ci_upper_bound = 2 * mean - lower_percentile
 
     # plot demand function and its uncertainty, Figure 4
     fig, axis = plt.subplots()
@@ -74,10 +72,10 @@ def get_figure_3_and_4(demand, rc_range, true_demand):
         color=sns.color_palette("Blues")[3],
         label=r"$\sigma$-Band",
     )
-    axis.plot(rc_range, ci_lower_bound, color=sns.color_palette("Blues")[1])
+    axis.plot(rc_range, lower_percentile, color=sns.color_palette("Blues")[1])
     axis.plot(
         rc_range,
-        ci_upper_bound,
+        upper_percentile,
         color=sns.color_palette("Blues")[1],
         label="95% Confidence Band",
     )
@@ -239,6 +237,10 @@ def get_sensitivity_figure(
         ax[0].set_ylabel("Demand")
         if legend is True:
             ax[1].legend()
+        if figure_name == "9":
+            ax[0].set_xlabel("Specification")
+            ax[0].set_xticklabels(["4", "22", "28", "34", "35", "33", "31"])
+
     plt.savefig("figures/figure_" + figure_name + ".png", dpi=1000)
 
 
