@@ -1,5 +1,5 @@
 \def \figurename {Algorithm}
-\contentsline {algocf}{\numberline {1}{\ignorespaces Nested Fixed Point Algorithm\relax }}{3}{algocf.1}%
-\contentsline {algocf}{\numberline {2}{\ignorespaces Mathematical Programming with Equilibrium Constraints\relax }}{4}{algocf.2}%
-\contentsline {algocf}{\numberline {3}{\ignorespaces Nested Fixed Point Algorithm for the Rust Model\relax }}{10}{algocf.3}%
-\contentsline {algocf}{\numberline {4}{\ignorespaces MPEC Algorithm for the Rust Model\relax }}{11}{algocf.4}%
+\contentsline {algocf}{\numberline {1}{\ignorespaces Nested Fixed Point Algorithm\relax }}{6}{algocf.1}%
+\contentsline {algocf}{\numberline {2}{\ignorespaces Mathematical Programming with Equilibrium Constraints\relax }}{6}{algocf.2}%
+\contentsline {algocf}{\numberline {3}{\ignorespaces Nested Fixed Point Algorithm for the Rust Model\relax }}{12}{algocf.3}%
+\contentsline {algocf}{\numberline {4}{\ignorespaces MPEC Algorithm for the Rust Model\relax }}{13}{algocf.4}%

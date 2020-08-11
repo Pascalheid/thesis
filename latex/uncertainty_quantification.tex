@@ -1,4 +1,4 @@
-\section{Uncertainty Quantification}
+\section{Uncertainty Quantification} \label{uq}
 \thispagestyle{plain} % surpress header on first page
 
 Most sciences work at least to a certain degree quantitatively and by doing so they often rely on theoretical models that in many cases approximate the underlying true mechanisms that drive a certain process or phenomenon. In many cases the quantitative model outcome of interest is the result of a transformation of model inputs through a complex mathematical system. Across disciplines, from a model perspective many inputs and initial states as well as their development are not deterministic but are uncertain. The model inputs are often informed by theory, previous quantitative studies as well as experiments or need to be calibrated using limited data but cannot be treated as known. It is now often argued that the inherently uncertain parameters propagate their error through the model which yields an uncertain model outcome. In order to make informed decisions based on the model outcome, this uncertainty should be quantified and communicated. This constitutes one main motivation why the applied mathematics field of Uncertainty Quantification (UQ) developed and still is an active field of research. Many of its advancements come from the engineering and physical sciences in which negligence of uncertainty in the outcomes can lead to attributable and severe consequences. In climatology, the predicted path of a hurricane is reported with uncertainties which are due to the dynamical, complex weather conditions that can only be approximated. These uncertainties inform countries about whether they might be hit while giving them valuable time to prepare. An example from engineering involves the safety of a nuclear power plant which in turn is affected by factors such as the weather and its environment in general. This also includes seismological activity which was causing the catastrophe in Fukushima back in 2013. Uncertainty Quantification tries to incorporate those risks in the modeling process and make them explicit (compare \cite{Sullivan.2015} and \cite{Smith.2013}).
@@ -65,7 +65,7 @@ A flexible calculation of the above demand function depending on some parameter 
 
 For this section I draw on the results of the Monte Carlo simulation for the discount factor $\beta=0.975$ from section \ref{generalsetup}. As the results for MPEC and NFXP are virtually the same and they do not vary across different starting values, I rely on the MPEC results for the starting values $(RC^0, \theta^0_{11}) = (4,1)$.
 
-\begin{figure}[!b]
+\begin{figure}[!t]
 	\caption{Joint Distribution of $\hat{RC}$ and $\hat\theta_{11}$}
 	\centering
 	\includegraphics[scale=0.8]{../figures/figure_2.png}
@@ -74,7 +74,7 @@ For this section I draw on the results of the Monte Carlo simulation for the dis
 
 Hence, in total I have 250 parameter estimates for 250 different data sets that were, as \cite{Su.Judd.2012} point out, created by a parametric bootstrap procedure. This allows me to identify summary statistics for both the parameters as well as the QoI. As we keep both the model assumptions and numerical approximations constant across the runs, we solely have a look at the effect of uncertainty in the parameters from the calibration process on the QoI. In the context of \textit{sensitivity analysis} which is targeting the influence of parameter uncertainty it is important to first determine whether the uncertainty in parameters is actually independent across them or whether there is some interdependence. The correlation between all parameters is reported in Table \ref{correlation} in the appendix B. Here, I visualize the joint distribution of the cost parameter estimates in Figure \ref{figure2} which shows that there is a strong interdependence between them. Consequently, an approach to sensitivity analysis in which only one parameter at a time is varied to determine its contribution to the uncertainty in the QoI would lead to wrong results. In the above Figure \ref{figure2} we can further observe that the empirical distribution of our estimates is centered around the true values of the cost parameters and that the actual overestimation of them (compare to the appendix \ref{appendixA}) seems to be driven by some outliers that yield estimates being way too large.
 
-\begin{figure}[!b]
+\begin{figure}[!t]
 	\caption{Distribution of the QoI}
 	\vspace*{-4mm}
 	\centering
@@ -87,6 +87,8 @@ We are now interested in how this paremeter uncertainty translates into uncertai
 
 The calculated empirical mean of $Y$ across the Monte Carlo runs is very similar to the true expected demand (which is derived from the true parameter vector). The interval of one standard deviation around the mean ranges from around 5.8 to 7.5 while the 95\% bootstrap confidence interval stretches from 5.1 to 8.5. This uncertainty obviously also translates into the view on the whole expected demand function across a range of different replacement costs. Figure \ref{figure4} below corresponds to the implied demand function in Figure 7 of \cite{Rust.1987} while being calculated for 50 buses and for the model setup of \cite{Iskhakov.2016}. To Rust's figure I now add uncertainty resulting from the calibration procedure. I obtain a well-behaved downward sloping demand function for which the mean across our Monte Carlo simulation corresponds closely to the true expected demand function.
 
+This constitutes the end of the description on the basic idea of uncertainty quantification in the Rust Model. In the next sections, I will use this framework to vary other key specifications of the model and the calibration procedure to investigate how this translates into the uncertainty of the QoI described above whether this might differ when using MPEC as opposed to the NFXP.
+
 \begin{figure}[H]
 	\caption{The Implied Demand Function accounting for Parameter Uncertainty}
 	\vspace*{-4mm}
@@ -94,9 +96,6 @@ The calculated empirical mean of $Y$ across the Monte Carlo runs is very similar
 	\includegraphics[scale=0.9]{../figures/figure_4.png}
 	\label{figure4}
 \end{figure}
-
-This constitutes the end of the description on the basic idea of uncertainty quantification in the Rust Model. In the next sections, I will use this framework to vary other key specifications of the model and the calibration procedure to investigate how this translates into the uncertainty of the QoI described above whether this might differ when using MPEC as opposed to the NFXP.
-
 
 
 
