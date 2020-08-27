@@ -21,3 +21,13 @@ jobs:
         export PATH="$PATH:/usr/share/miniconda/bin"
         source .envrc
         jupyter nbconvert --execute --ExecutePreprocessor.timeout=120 replication.ipynb
+
+  build_latex:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v1
+      - name: Compile LaTeX document
+        uses: dante-ev/latex-action@master
+        with:
+          root_file: main.tex
