@@ -3,19 +3,19 @@ channels:
   - opensourceeconomics
   - conda-forge
 dependencies:
-- numpy
-- pandas
-- jupyterlab
-- matplotlib
-- seaborn
-- scipy
-- pip
-- estimagic>=0.0.30
-- nlopt
-- numba
-- ruspy
-- pip:
-      - flake8
-      - black
-      - pre-commit
-      - joblib
+  - numpy
+  - pandas
+  - jupyterlab
+  - matplotlib
+  - seaborn
+  - scipy
+  - pip
+  - estimagic>=0.0.30
+  - nlopt
+  - numba
+  - ruspy
+  - pip:
+    - flake8
+    - black
+    - pre-commit
+    - joblib
