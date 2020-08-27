@@ -15,7 +15,6 @@ jobs:
            environment-file: environment.yml
            python-version: 3.8
            auto-update-conda: true
-           auto-activate-base: false
     - name: execute notebook
       shell: bash -l {0}
       run: |
