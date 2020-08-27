@@ -12,6 +12,7 @@ jobs:
     - uses: goanpeca/setup-miniconda@v1.0.2
       with:
         miniconda-version: "latest"
+        auto-update-conda: true
         activate-environment: thesis
         environment-file: environment.yml
         python-version: 3.7 
