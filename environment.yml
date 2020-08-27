@@ -13,7 +13,9 @@ dependencies:
 - estimagic>=0.0.30
 - nlopt
 - numba
+- ruspy
 - pip:
       - flake8
       - black
       - pre-commit
+      - joblib
