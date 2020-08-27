@@ -32,3 +32,4 @@ jobs:
         with:
           working_directory: ./latex 
           root_file: main.tex
+          args: -pdf -latexoption=-file-line-error -latexoption=-interaction=nonstopmode -bibtex  
