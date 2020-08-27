@@ -31,3 +31,4 @@ jobs:
         uses: dante-ev/latex-action@master
         with:
           root_file: ./latex/main.tex
+          working_directory: ./latex 
