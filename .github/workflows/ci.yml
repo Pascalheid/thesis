@@ -3,29 +3,9 @@ name: Continuous Integration
 on: [push]
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - uses: goanpeca/setup-miniconda@v1.0.2
-      with:
-           activate-environment: thesis
-           environment-file: environment.yml
-           python-version: 3.8
-           auto-update-conda: true
-           auto-activate-base: false
-    - name: execute notebook
-      shell: bash -l {0}
-      run: |
-        export PATH="$PATH:/usr/share/miniconda/bin"
-        source .envrc
-        jupyter nbconvert --execute --ExecutePreprocessor.timeout=120 replication.ipynb
-
   latex-job:
     runs-on: ubuntu-latest
-    name: A job to Compile Latex file
+    name: complie latex
     steps:
     - uses: actions/checkout@v1
     - name: Compilation
