@@ -9,7 +9,7 @@ from matplotlib.lines import Line2D
 
 def get_figure_2(results, beta):
     """
-    Creates and saves Figure 2 of my thesis.
+    Creates Figure 2 of my thesis.
 
     Parameters
     ----------
@@ -30,12 +30,11 @@ def get_figure_2(results, beta):
     ]
     figure_2 = sns.jointplot("theta_11", "RC", results_beta, kind="hex")
     figure_2.set_axis_labels(r"$\hat\theta_{11}$", r"$\hat{RC}$")
-    figure_2.savefig("figures/figure_2.png", dpi=1000)
 
 
 def get_figure_3_and_4(demand, rc_range, true_demand):
     """
-    Creates and saves Figures 3 and 4.
+    Creates Figures 3 and 4.
 
     Parameters
     ----------
@@ -84,8 +83,6 @@ def get_figure_3_and_4(demand, rc_range, true_demand):
     axis.set_xlabel("Replacement Cost in Thousands")
     axis.set_ylabel("Expected Annual Engine Replacement")
     axis.legend()
-    # axis.fill_between(rc_range, upper_bound, lower_bound, color="0.5")
-    plt.savefig("figures/figure_4.png", dpi=1000)
 
     # plot distribution of QoI, Figure 3
     data = demand.loc[11.0, :].astype(float).to_numpy()
@@ -121,7 +118,6 @@ def get_figure_3_and_4(demand, rc_range, true_demand):
 
     ax.set_yticklabels([])
     ax.legend()
-    plt.savefig("figures/figure_3.png", dpi=1000)
 
 
 def get_sensitivity_figure(
@@ -241,8 +237,6 @@ def get_sensitivity_figure(
             ax[0].set_xlabel("Specification")
             ax[0].set_xticklabels(["4", "22", "28", "34", "35", "33", "31"])
 
-    plt.savefig("figures/figure_" + figure_name + ".png", dpi=1000)
-
 
 def get_sensitivity_figure_single(
     sensitivity_table, specifications, labels, figure_name, approach, legend=False
@@ -354,7 +348,6 @@ def get_sensitivity_figure_single(
     ax.set_ylabel("Demand")
     if legend is True:
         ax.legend()
-    plt.savefig("figures/figure_" + figure_name + ".png", dpi=1000)
 
 
 def get_sensitivity_density(
@@ -411,7 +404,6 @@ def get_sensitivity_density(
 
     legend = [Line2D([0], [0], color=sns.color_palette("Blues")[5], lw=2)]
     ax.legend(legend, ["correctly specified"])
-    plt.savefig("figures/" + figure_name + ".png", dpi=1000)
 
 
 def get_sensitivity_density_both(
@@ -478,8 +470,6 @@ def get_sensitivity_density_both(
         )
         ax[0].legend(legend, ["Correctly specified", "True Demand"])
 
-    plt.savefig("figures/" + figure_name + ".png", dpi=1000)
-
 
 def get_mse_figure(sensitivity_table, specifications, figure_name):
     """
@@ -527,4 +517,3 @@ def get_mse_figure(sensitivity_table, specifications, figure_name):
     for spec in np.arange(0, 36, 5):
         ax.axvline(spec, color="black", linestyle="--", linewidth=0.5)
     ax.legend()
-    plt.savefig("figures/" + figure_name + ".png", dpi=1000)
