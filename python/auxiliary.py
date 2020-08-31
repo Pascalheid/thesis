@@ -2,6 +2,7 @@
 Contains all functions that are needed in intermediary steps in order to obtain
 certain tables and figures of the thesis.
 """
+import os
 import pickle
 
 import numpy as np
@@ -10,7 +11,11 @@ import scipy.io
 from ruspy.estimation.estimation import estimate
 from ruspy.estimation.estimation_transitions import create_transition_matrix
 from ruspy.model_code.cost_functions import calc_obs_costs
-from ruspy.model_code.demand_function import get_demand
+
+if os.environ.get("TRAVIS"):
+    pass
+else:
+    from ruspy.model_code.demand_function import get_demand
 from ruspy.model_code.fix_point_alg import calc_fixp
 from ruspy.simulation.simulation import simulate
 
